@@ -4,7 +4,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' as PackLoc;
+import 'package:geolocator/geolocator.dart';
 
 void main() => runApp(MyApp());
 
@@ -12,6 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Remap',
       home: BaseGMap(),
     );
@@ -24,12 +26,13 @@ class BaseGMap extends StatefulWidget {
 }
 
 class BaseGMapState extends State<BaseGMap> {
-  var currentLocation = LocationData;
+  Completer<GoogleMapController> _controller = Completer();
 
-  var location = new Location();
+  var currentLocation = PackLoc.LocationData;
+  var location = new PackLoc.Location();
 
   static final LatLng center = const LatLng(-33.86711, 151.1947171);
-  GoogleMapController mapController;
+  //GoogleMapController mapController;
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
   int _markerIdCounter = 1;
@@ -43,8 +46,32 @@ class BaseGMapState extends State<BaseGMap> {
                 target: LatLng(-33.86711, 151.1947171), zoom: 15),
             onMapCreated: _onMapCreated,
             myLocationEnabled: true,
+            myLocationButtonEnabled: false,
             mapType: MapType.hybrid,
             markers: Set<Marker>.of(markers.values),
+          ),
+          Positioned(
+            bottom: 20,
+            right: 40,
+            child: Container(
+              width: 55,
+              height: 55,
+              child: RaisedButton(
+                elevation: 10,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0)),
+                child: Center(
+                  child: Icon(
+                    Icons.gps_fixed,
+                    color: Colors.green,
+                  ),
+                ),
+                onPressed: () {
+                  _goToDeviceLocation();
+                },
+              ),
+            ),
           ),
         ],
       ),
@@ -60,7 +87,7 @@ class BaseGMapState extends State<BaseGMap> {
 
   _onMapCreated(GoogleMapController controller) {
     setState(() {
-      mapController = controller;
+      _controller.complete(controller);
     });
   }
 
@@ -82,6 +109,15 @@ class BaseGMapState extends State<BaseGMap> {
         markers[markerId] = newMarker;
       });
     }
+  }
+
+  _goToDeviceLocation() async {
+    Position position = await Geolocator()
+        .getLastKnownPosition(desiredAccuracy: LocationAccuracy.high);
+    final GoogleMapController controller = await _controller.future;
+    print(position.latitude);
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: LatLng(position.latitude, position.longitude))));
   }
 
   _add() async {
