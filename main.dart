@@ -73,9 +73,33 @@ class BaseGMapState extends State<BaseGMap> {
               ),
             ),
           ),
+          Positioned(
+            bottom: 20,
+            left: 40,
+            child: Container(
+              width: 55,
+              height: 55,
+              child: RaisedButton(
+                elevation: 10,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0)),
+                child: Center(
+                  child: Icon(
+                    Icons.search,
+                    color: Colors.grey,
+                  ),
+                ),
+                onPressed: () {
+                  _searchLocation();
+                },
+              ),
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.green,
         onPressed: () {
           _add();
         },
@@ -90,6 +114,8 @@ class BaseGMapState extends State<BaseGMap> {
       _controller.complete(controller);
     });
   }
+
+  _searchLocation() {}
 
   void _onMarkerTapped(MarkerId markerId) {
     final Marker tappedMarker = markers[markerId];
@@ -115,9 +141,8 @@ class BaseGMapState extends State<BaseGMap> {
     Position position = await Geolocator()
         .getLastKnownPosition(desiredAccuracy: LocationAccuracy.high);
     final GoogleMapController controller = await _controller.future;
-    print(position.latitude);
-    controller.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(target: LatLng(position.latitude, position.longitude))));
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: LatLng(position.latitude, position.longitude), zoom: 15)));
   }
 
   _add() async {
