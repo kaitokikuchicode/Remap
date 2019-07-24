@@ -34,6 +34,7 @@ class BaseGMapState extends State<BaseGMap> {
   var location = new PackLoc.Location();
 
   static final LatLng center = const LatLng(-33.86711, 151.1947171);
+  LatLng _centerLocation = center;
   //GoogleMapController mapController;
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
@@ -53,6 +54,7 @@ class BaseGMapState extends State<BaseGMap> {
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             mapType: MapType.hybrid,
+            onCameraMove: _getCenterLocation,
             markers: Set<Marker>.of(markers.values),
           ),
           Container(
@@ -197,6 +199,10 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
+  void _getCenterLocation(CameraPosition position) {
+    _centerLocation = position.target;
+  }
+
   _searchLocation() {}
 
   void _onMarkerTapped(MarkerId markerId) {
@@ -228,17 +234,13 @@ class BaseGMapState extends State<BaseGMap> {
   }
 
   _add() async {
-    var pos = await location.getLocation();
     final String markerIdVal = 'marker_id_$_markerIdCounter';
     _markerIdCounter++;
     final MarkerId markerId = MarkerId(markerIdVal);
 
     final Marker marker = Marker(
       markerId: markerId,
-      position: LatLng(
-        pos.latitude,
-        pos.longitude,
-      ),
+      position: _centerLocation,
       infoWindow: InfoWindow(title: markerIdVal, snippet: '*'),
       onTap: () {
         _onMarkerTapped(markerId);
