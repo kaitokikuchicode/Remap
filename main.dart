@@ -1,11 +1,13 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:ui';
+// import 'dart:math';
+// import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
+
+import 'package:line_icons/line_icons.dart';
 
 void main() => runApp(MyApp());
 
@@ -36,10 +38,13 @@ class BaseGMapState extends State<BaseGMap> {
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
   int _markerIdCounter = 1;
+  bool drawMode = false;
+  bool drawRoute = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+        alignment: AlignmentDirectional.center,
         children: <Widget>[
           GoogleMap(
             initialCameraPosition: CameraPosition(
@@ -49,6 +54,14 @@ class BaseGMapState extends State<BaseGMap> {
             myLocationButtonEnabled: false,
             mapType: MapType.hybrid,
             markers: Set<Marker>.of(markers.values),
+          ),
+          Container(
+            child: drawMode
+                ? Icon(
+                    LineIcons.crosshairs,
+                    size: 30,
+                  )
+                : null,
           ),
           Positioned(
             bottom: 20,
@@ -96,14 +109,83 @@ class BaseGMapState extends State<BaseGMap> {
               ),
             ),
           ),
+          Positioned(
+            bottom: 80,
+            child: Visibility(
+              visible: drawRoute,
+              child: Container(
+                width: 150,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green, width: 1.5),
+                    color: Colors.white),
+                height: 50,
+                child: GestureDetector(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.place,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      Icon(
+                        Icons.brush,
+                        color: Colors.blue,
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.place,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    _drawRoute();
+                  },
+                ),
+              ),
+            ),
+          ),
+          Container(
+              child: drawMode
+                  ? Positioned(
+                      bottom: 80,
+                      child: Container(
+                        width: 55,
+                        height: 55,
+                        child: RaisedButton(
+                          elevation: 10,
+                          color: Colors.green,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0)),
+                          child: Center(
+                            child: Icon(
+                              Icons.add,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onPressed: () {
+                            _add();
+                          },
+                        ),
+                      ),
+                    )
+                  : null),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green,
+        backgroundColor: drawMode ? Colors.red : Colors.green,
         onPressed: () {
-          _add();
+          setState(() {
+            drawMode ? drawMode = false : drawMode = true;
+          });
         },
-        child: Icon(Icons.pin_drop),
+        child: drawMode ? Icon(Icons.close) : Icon(Icons.brush),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -175,4 +257,6 @@ class BaseGMapState extends State<BaseGMap> {
       }
     });
   }
+
+  _drawRoute() {}
 }
