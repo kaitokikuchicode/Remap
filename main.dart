@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 import 'package:line_icons/line_icons.dart';
 
@@ -33,12 +34,19 @@ class BaseGMapState extends State<BaseGMap> {
   var currentLocation = PackLoc.LocationData;
   var location = new PackLoc.Location();
 
-  static final LatLng center = const LatLng(-33.86711, 151.1947171);
-  LatLng _centerLocation = center;
-  //GoogleMapController mapController;
+  static final LatLng center =
+      const LatLng(-33.86711, 151.1947171); //first camera position
+  LatLng _centerLocation = center; //map's center location
+
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
-  int _markerIdCounter = 1;
+  int _markerIdCounter = 0;
+  List<LatLng> markersLocation = []; //used when draw polyline
+
+  Map<PolylineId, Polyline> polylines = {};
+  List<LatLng> polylineCoordinates = [];
+  PolylinePoints polylinePoints = PolylinePoints();
+  String googleAPiKey = "Your api key";
   bool drawMode = false;
   bool drawRoute = false;
   @override
@@ -56,8 +64,10 @@ class BaseGMapState extends State<BaseGMap> {
             mapType: MapType.hybrid,
             onCameraMove: _getCenterLocation,
             markers: Set<Marker>.of(markers.values),
+            polylines: Set<Polyline>.of(polylines.values),
           ),
           Container(
+            //center cursor
             child: drawMode
                 ? Icon(
                     LineIcons.crosshairs,
@@ -66,6 +76,7 @@ class BaseGMapState extends State<BaseGMap> {
                 : null,
           ),
           Positioned(
+            //location button
             bottom: 20,
             right: 40,
             child: Container(
@@ -89,6 +100,7 @@ class BaseGMapState extends State<BaseGMap> {
             ),
           ),
           Positioned(
+            //search button
             bottom: 20,
             left: 40,
             child: Container(
@@ -112,9 +124,10 @@ class BaseGMapState extends State<BaseGMap> {
             ),
           ),
           Positioned(
-            bottom: 80,
+            //draw route button
+            top: 80,
             child: Visibility(
-              visible: drawRoute,
+              visible: true, //drawRoute,
               child: Container(
                 width: 150,
                 decoration: BoxDecoration(
@@ -147,13 +160,14 @@ class BaseGMapState extends State<BaseGMap> {
                     ],
                   ),
                   onTap: () {
-                    _drawRoute();
+                    _getPolyline();
                   },
                 ),
               ),
             ),
           ),
           Container(
+              //add pin button
               child: drawMode
                   ? Positioned(
                       bottom: 80,
@@ -181,6 +195,7 @@ class BaseGMapState extends State<BaseGMap> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        //mode change button
         backgroundColor: drawMode ? Colors.red : Colors.green,
         onPressed: () {
           setState(() {
@@ -233,10 +248,11 @@ class BaseGMapState extends State<BaseGMap> {
         target: LatLng(position.latitude, position.longitude), zoom: 15)));
   }
 
-  _add() async {
+  _add() {
     final String markerIdVal = 'marker_id_$_markerIdCounter';
     _markerIdCounter++;
     final MarkerId markerId = MarkerId(markerIdVal);
+    markersLocation.add(_centerLocation);
 
     final Marker marker = Marker(
       markerId: markerId,
@@ -260,5 +276,31 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
-  _drawRoute() {}
+  _addPolyLine() {
+    PolylineId id = PolylineId("poly");
+    Polyline polyline = Polyline(
+        polylineId: id, color: Colors.red, points: polylineCoordinates);
+    polylines[id] = polyline;
+    setState(() {});
+  }
+
+  _getPolyline() async {
+    final double originLat =
+        markersLocation[markersLocation.length - 2].latitude;
+    final double originLong =
+        markersLocation[markersLocation.length - 2].longitude;
+    final double destLat = markersLocation[markersLocation.length - 1].latitude;
+    final double destLong =
+        markersLocation[markersLocation.length - 1].longitude;
+    //problem is here
+    List<PointLatLng> result = await polylinePoints.getRouteBetweenCoordinates(
+        googleAPiKey, originLat, originLong, destLat, destLong);
+
+    if (result.isNotEmpty) {
+      result.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+    }
+    _addPolyLine();
+  }
 }
