@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+//import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 import 'package:line_icons/line_icons.dart';
 
@@ -43,10 +43,10 @@ class BaseGMapState extends State<BaseGMap> {
   int _markerIdCounter = 0;
   List<LatLng> markersLocation = []; //used when draw polyline
 
-  Map<PolylineId, Polyline> polylines = {};
+  Set<Polyline> polylines = {};
   List<LatLng> polylineCoordinates = [];
-  PolylinePoints polylinePoints = PolylinePoints();
-  String googleAPiKey = "Your api key";
+  //PolylinePoints polylinePoints = PolylinePoints();
+  //String googleAPiKey = "Your api key";
   bool drawMode = false;
   bool drawRoute = false;
   @override
@@ -64,7 +64,7 @@ class BaseGMapState extends State<BaseGMap> {
             mapType: MapType.hybrid,
             onCameraMove: _getCenterLocation,
             markers: Set<Marker>.of(markers.values),
-            polylines: Set<Polyline>.of(polylines.values),
+            polylines: polylines, //Set<Polyline>.of(polylines.values),
           ),
           Container(
             //center cursor
@@ -160,7 +160,7 @@ class BaseGMapState extends State<BaseGMap> {
                     ],
                   ),
                   onTap: () {
-                    _getPolyline();
+                    _createPolyline();
                   },
                 ),
               ),
@@ -276,31 +276,45 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
-  _addPolyLine() {
-    PolylineId id = PolylineId("poly");
-    Polyline polyline = Polyline(
-        polylineId: id, color: Colors.red, points: polylineCoordinates);
-    polylines[id] = polyline;
+  _createPolyline() {
+    LatLng origin = markersLocation[markersLocation.length - 2];
+    LatLng destination = markersLocation[markersLocation.length - 1];
+    polylines.add(Polyline(
+      polylineId: PolylineId(destination.toString()),
+      visible: true,
+      //latlng is List<LatLng>
+      points: [origin, destination],
+      width: 8,
+      color: Colors.blue,
+    ));
     setState(() {});
   }
 
-  _getPolyline() async {
-    final double originLat =
-        markersLocation[markersLocation.length - 2].latitude;
-    final double originLong =
-        markersLocation[markersLocation.length - 2].longitude;
-    final double destLat = markersLocation[markersLocation.length - 1].latitude;
-    final double destLong =
-        markersLocation[markersLocation.length - 1].longitude;
-    //problem is here
-    List<PointLatLng> result = await polylinePoints.getRouteBetweenCoordinates(
-        googleAPiKey, originLat, originLong, destLat, destLong);
+  // _addPolyLine() {
+  //   PolylineId id = PolylineId("poly");
+  //   Polyline polyline = Polyline(
+  //       polylineId: id, color: Colors.red, points: polylineCoordinates);
+  //   polylines[id] = polyline;
+  //   setState(() {});
+  // }
 
-    if (result.isNotEmpty) {
-      result.forEach((PointLatLng point) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
-    }
-    _addPolyLine();
-  }
+  // _getPolyline() async {
+  //   final double originLat =
+  //       markersLocation[markersLocation.length - 2].latitude;
+  //   final double originLong =
+  //       markersLocation[markersLocation.length - 2].longitude;
+  //   final double destLat = markersLocation[markersLocation.length - 1].latitude;
+  //   final double destLong =
+  //       markersLocation[markersLocation.length - 1].longitude;
+  //   //problem is here
+  //   List<PointLatLng> result = await polylinePoints.getRouteBetweenCoordinates(
+  //       googleAPiKey, originLat, originLong, destLat, destLong);
+
+  //   if (result.isNotEmpty) {
+  //     result.forEach((PointLatLng point) {
+  //       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+  //     });
+  //   }
+  //   _addPolyLine();
+  // }
 }
