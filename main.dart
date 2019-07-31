@@ -1,12 +1,9 @@
 import 'dart:async';
-// import 'dart:math';
-// import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
-//import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 import 'package:line_icons/line_icons.dart';
 
@@ -45,10 +42,12 @@ class BaseGMapState extends State<BaseGMap> {
 
   Set<Polyline> polylines = {};
   List<LatLng> polylineCoordinates = [];
-  //PolylinePoints polylinePoints = PolylinePoints();
-  //String googleAPiKey = "Your api key";
+
   bool drawMode = false;
   bool drawRoute = false;
+  bool markerSelected = false;
+
+  String inpAd;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,7 +89,7 @@ class BaseGMapState extends State<BaseGMap> {
                 child: Center(
                   child: Icon(
                     Icons.gps_fixed,
-                    color: Colors.green,
+                    color: Colors.grey,
                   ),
                 ),
                 onPressed: () {
@@ -100,72 +99,59 @@ class BaseGMapState extends State<BaseGMap> {
             ),
           ),
           Positioned(
-            //search button
-            bottom: 20,
-            left: 40,
+            top: 30.0,
+            right: 15.0,
+            left: 15.0,
             child: Container(
-              width: 55,
-              height: 55,
-              child: RaisedButton(
-                elevation: 10,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0)),
-                child: Center(
-                  child: Icon(
-                    Icons.search,
-                    color: Colors.grey,
-                  ),
-                ),
-                onPressed: () {
-                  _searchLocation();
+              height: 50.0,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.0),
+                  color: Colors.white),
+              child: TextField(
+                decoration: InputDecoration(
+                    hintText: 'Enter Address',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.only(left: 15.0, top: 15.0),
+                    suffixIcon: IconButton(
+                        icon: Icon(Icons.search),
+                        onPressed: _searchLocation,
+                        iconSize: 30.0)),
+                onChanged: (val) {
+                  setState(() {
+                    inpAd = val;
+                  });
                 },
               ),
             ),
           ),
-          Positioned(
-            //draw route button
-            top: 80,
-            child: Visibility(
-              visible: true, //drawRoute,
-              child: Container(
-                width: 150,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.green, width: 1.5),
-                    color: Colors.white),
-                height: 50,
-                child: GestureDetector(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.place,
-                          color: Colors.redAccent,
+          Container(
+              //draw route button
+              child: drawRoute
+                  ? Positioned(
+                      bottom: 20,
+                      left: 40,
+                      child: Container(
+                        width: 55,
+                        height: 55,
+                        child: RaisedButton(
+                          elevation: 10,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0)),
+                          child: Center(
+                            child: Icon(
+                              Icons.done,
+                              color: Colors.greenAccent,
+                            ),
+                          ),
+                          onPressed: () {
+                            _createPolyline();
+                          },
                         ),
                       ),
-                      Icon(
-                        Icons.brush,
-                        color: Colors.blue,
-                      ),
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.place,
-                          color: Colors.redAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    _createPolyline();
-                  },
-                ),
-              ),
-            ),
-          ),
+                    )
+                  : null),
           Container(
               //add pin button
               child: drawMode
@@ -187,6 +173,31 @@ class BaseGMapState extends State<BaseGMap> {
                           ),
                           onPressed: () {
                             _add();
+                          },
+                        ),
+                      ),
+                    )
+                  : null),
+          Container(
+              //delete pin button
+              child: markerSelected
+                  ? Positioned(
+                      top: 250,
+                      right: 80,
+                      child: Container(
+                        width: 55,
+                        height: 55,
+                        child: RaisedButton(
+                          elevation: 10,
+                          color: Colors.red,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0)),
+                          child: Icon(
+                            Icons.remove,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            _remove();
                           },
                         ),
                       ),
@@ -218,7 +229,15 @@ class BaseGMapState extends State<BaseGMap> {
     _centerLocation = position.target;
   }
 
-  _searchLocation() {}
+  _searchLocation() {
+    Geolocator().placemarkFromAddress(inpAd).then((result) async {
+      final GoogleMapController controller = await _controller.future;
+      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target:
+              LatLng(result[0].position.latitude, result[0].position.longitude),
+          zoom: 15.0)));
+    });
+  }
 
   void _onMarkerTapped(MarkerId markerId) {
     final Marker tappedMarker = markers[markerId];
@@ -232,10 +251,11 @@ class BaseGMapState extends State<BaseGMap> {
         selectedMarker = markerId;
         final Marker newMarker = tappedMarker.copyWith(
           iconParam: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
+            BitmapDescriptor.hueRed,
           ),
         );
         markers[markerId] = newMarker;
+        markerSelected = true;
       });
     }
   }
@@ -255,6 +275,7 @@ class BaseGMapState extends State<BaseGMap> {
     markersLocation.add(_centerLocation);
 
     final Marker marker = Marker(
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       markerId: markerId,
       position: _centerLocation,
       infoWindow: InfoWindow(title: markerIdVal, snippet: '*'),
@@ -266,6 +287,12 @@ class BaseGMapState extends State<BaseGMap> {
     setState(() {
       markers[markerId] = marker;
     });
+
+    if (markers.length != 0 && markers.length != 1) {
+      setState(() {
+        drawRoute = true;
+      });
+    }
   }
 
   void _remove() {
@@ -273,6 +300,7 @@ class BaseGMapState extends State<BaseGMap> {
       if (markers.containsKey(selectedMarker)) {
         markers.remove(selectedMarker);
       }
+      markerSelected = false;
     });
   }
 
@@ -287,34 +315,9 @@ class BaseGMapState extends State<BaseGMap> {
       width: 8,
       color: Colors.blue,
     ));
-    setState(() {});
+
+    setState(() {
+      drawRoute = false;
+    });
   }
-
-  // _addPolyLine() {
-  //   PolylineId id = PolylineId("poly");
-  //   Polyline polyline = Polyline(
-  //       polylineId: id, color: Colors.red, points: polylineCoordinates);
-  //   polylines[id] = polyline;
-  //   setState(() {});
-  // }
-
-  // _getPolyline() async {
-  //   final double originLat =
-  //       markersLocation[markersLocation.length - 2].latitude;
-  //   final double originLong =
-  //       markersLocation[markersLocation.length - 2].longitude;
-  //   final double destLat = markersLocation[markersLocation.length - 1].latitude;
-  //   final double destLong =
-  //       markersLocation[markersLocation.length - 1].longitude;
-  //   //problem is here
-  //   List<PointLatLng> result = await polylinePoints.getRouteBetweenCoordinates(
-  //       googleAPiKey, originLat, originLong, destLat, destLong);
-
-  //   if (result.isNotEmpty) {
-  //     result.forEach((PointLatLng point) {
-  //       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-  //     });
-  //   }
-  //   _addPolyLine();
-  // }
 }
