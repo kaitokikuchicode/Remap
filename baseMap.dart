@@ -25,14 +25,18 @@ class BaseGMapState extends State<BaseGMap> {
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
   int _markerIdCounter = 0;
-  List<LatLng> markersLocation = []; //used when draw polyline
+  Map<MarkerId, LatLng> markersLocation = {}; //used when draw polyline
+  List<MarkerId> markerIds = [];
 
   Map<PolylineId, Polyline> polylines = {};
   List<LatLng> polylineCoordinates = [];
+  PolylineId selectedPolyline;
 
   bool drawMode = false;
-  bool drawRoute = false;
+  bool drawDone = false;
   bool markerSelected = false;
+  bool polylineSelected = false;
+  bool cameraMove = false;
 
   String inpAd;
   @override
@@ -49,19 +53,20 @@ class BaseGMapState extends State<BaseGMap> {
             myLocationButtonEnabled: false,
             mapType: MapType.hybrid,
             onCameraMove: _getCenterLocation,
+            onTap: _onMapTapped,
             markers: Set<Marker>.of(markers.values),
             polylines: Set<Polyline>.of(polylines.values),
           ),
           Positioned(
             //search location input
-            top: 30.0,
+            top: 35.0,
             right: 15.0,
             left: 15.0,
             child: Container(
               height: 50.0,
               width: double.infinity,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10.0),
+                  borderRadius: BorderRadius.circular(30.0),
                   color: Colors.white),
               child: TextField(
                 decoration: InputDecoration(
@@ -85,14 +90,15 @@ class BaseGMapState extends State<BaseGMap> {
             child: drawMode
                 ? Icon(
                     LineIcons.crosshairs,
-                    size: 30,
+                    size: 45,
+                    color: Colors.green,
                   )
                 : null,
           ),
           LocationButton(goToDeviceLocation: _goToDeviceLocation),
           Container(
-              //draw route button
-              child: drawRoute
+              //draw done button
+              child: drawDone
                   ? Positioned(
                       bottom: 20,
                       left: 40,
@@ -111,7 +117,7 @@ class BaseGMapState extends State<BaseGMap> {
                             ),
                           ),
                           onPressed: () {
-                            _createPolyline();
+                            _drawRouteDone();
                           },
                         ),
                       ),
@@ -127,13 +133,13 @@ class BaseGMapState extends State<BaseGMap> {
                         height: 55,
                         child: RaisedButton(
                           elevation: 10,
-                          color: Colors.green,
+                          color: Colors.white,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30.0)),
                           child: Center(
                             child: Icon(
-                              Icons.add,
-                              color: Colors.white,
+                              Icons.place,
+                              color: Colors.green,
                             ),
                           ),
                           onPressed: () {
@@ -144,11 +150,13 @@ class BaseGMapState extends State<BaseGMap> {
                     )
                   : null),
           Container(
-              //delete pin button
-              child: markerSelected
+              //delete marker and polyline button
+              child: (markerSelected || polylineSelected) &&
+                      drawMode &&
+                      !cameraMove
                   ? Positioned(
-                      top: 250,
-                      right: 80,
+                      top: 300,
+                      right: 100,
                       child: Container(
                         width: 55,
                         height: 55,
@@ -162,7 +170,8 @@ class BaseGMapState extends State<BaseGMap> {
                             color: Colors.white,
                           ),
                           onPressed: () {
-                            _removeMarker();
+                            if (markerSelected) _removeMarker();
+                            if (polylineSelected) _removePolyline();
                           },
                         ),
                       ),
@@ -172,13 +181,13 @@ class BaseGMapState extends State<BaseGMap> {
       ),
       floatingActionButton: FloatingActionButton(
         //mode change button
-        backgroundColor: drawMode ? Colors.red : Colors.green,
+        backgroundColor: Colors.green,
         onPressed: () {
           setState(() {
             drawMode ? drawMode = false : drawMode = true;
           });
         },
-        child: drawMode ? Icon(Icons.close) : Icon(Icons.brush),
+        child: drawMode ? Icon(Icons.map) : Icon(Icons.brush),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -190,8 +199,18 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
+  void _onMapTapped(LatLng latLng) {
+    setState(() {
+      markerSelected = false;
+      polylineSelected = false;
+    });
+  }
+
   void _getCenterLocation(CameraPosition position) {
     _centerLocation = position.target;
+    setState(() {
+      cameraMove = true;
+    });
   }
 
   void _searchLocation() {
@@ -217,8 +236,9 @@ class BaseGMapState extends State<BaseGMap> {
     if (tappedMarker != null) {
       setState(() {
         if (markers.containsKey(selectedMarker)) {
-          final Marker resetOld = markers[selectedMarker]
-              .copyWith(iconParam: BitmapDescriptor.defaultMarker);
+          final Marker resetOld = markers[selectedMarker].copyWith(
+              iconParam: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueGreen));
           markers[selectedMarker] = resetOld;
         }
         selectedMarker = markerId;
@@ -229,6 +249,8 @@ class BaseGMapState extends State<BaseGMap> {
         );
         markers[markerId] = newMarker;
         markerSelected = true;
+        polylineSelected = false;
+        cameraMove = false;
       });
     }
   }
@@ -237,9 +259,11 @@ class BaseGMapState extends State<BaseGMap> {
     final String markerIdVal = 'marker_id_$_markerIdCounter';
     _markerIdCounter++;
     final MarkerId markerId = MarkerId(markerIdVal);
-    markersLocation.add(_centerLocation);
+    markerIds.add(markerId);
 
     final Marker marker = Marker(
+      alpha: 0.7,
+      consumeTapEvents: true,
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       markerId: markerId,
       position: _centerLocation,
@@ -251,11 +275,12 @@ class BaseGMapState extends State<BaseGMap> {
 
     setState(() {
       markers[markerId] = marker;
+      markersLocation[markerId] = _centerLocation;
     });
 
     if (markers.length != 0 && markers.length != 1) {
       setState(() {
-        drawRoute = true;
+        _createPolyline();
       });
     }
   }
@@ -264,6 +289,10 @@ class BaseGMapState extends State<BaseGMap> {
     setState(() {
       if (markers.containsKey(selectedMarker)) {
         markers.remove(selectedMarker);
+        markersLocation.remove(selectedMarker);
+      }
+      if (markerIds.contains(selectedMarker)) {
+        markerIds.remove(selectedMarker);
       }
       markerSelected = false;
     });
@@ -271,27 +300,55 @@ class BaseGMapState extends State<BaseGMap> {
 
   void _onPolylineTapped(PolylineId polylineId) {
     final Polyline tappedPolyline = polylines[polylineId];
+    if (tappedPolyline != null) {
+      setState(() {
+        if (polylines.containsKey(selectedPolyline)) {
+          final Polyline resetOld = polylines[selectedPolyline]
+              .copyWith(colorParam: Color.fromRGBO(3, 169, 244, 1));
+          polylines[selectedPolyline] = resetOld;
+        }
+        selectedPolyline = polylineId;
+        final Polyline newPolyline =
+            tappedPolyline.copyWith(colorParam: Color.fromRGBO(180, 0, 0, 1));
+        polylines[polylineId] = newPolyline;
+        polylineSelected = true;
+        markerSelected = false;
+        cameraMove = false;
+      });
+    }
   }
 
   _createPolyline() {
-    LatLng origin = markersLocation[markersLocation.length - 2];
-    LatLng destination = markersLocation[markersLocation.length - 1];
+    LatLng origin = markersLocation[markerIds[markerIds.length - 2]];
+    LatLng destination = markersLocation[markerIds[markerIds.length - 1]];
     final PolylineId polylineId = PolylineId(destination.toString());
 
     final Polyline polyline = Polyline(
+        consumeTapEvents: true,
         polylineId: polylineId,
         visible: true,
         //latlng is List<LatLng>
         points: [origin, destination],
         width: 8,
-        color: Colors.blue,
+        color: Colors.lightBlue,
         onTap: () {
           _onPolylineTapped(polylineId);
         });
 
     setState(() {
       polylines[polylineId] = polyline;
-      drawRoute = false;
     });
   }
+
+  void _removePolyline() {
+    setState(() {
+      if (polylines.containsKey(selectedPolyline)) {
+        polylines.remove(selectedPolyline);
+      }
+
+      polylineSelected = false;
+    });
+  }
+
+  _drawRouteDone() {}
 }
