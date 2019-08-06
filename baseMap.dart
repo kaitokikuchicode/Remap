@@ -124,7 +124,7 @@ class BaseGMapState extends State<BaseGMap> {
                     )
                   : null),
           Container(
-              //add pin button
+              //add marker button
               child: drawMode
                   ? Positioned(
                       bottom: 80,
@@ -183,6 +183,10 @@ class BaseGMapState extends State<BaseGMap> {
         //mode change button
         backgroundColor: Colors.green,
         onPressed: () {
+          if (drawMode) {
+            _resetMarkerColor();
+            _resetPolylineColor();
+          }
           setState(() {
             drawMode ? drawMode = false : drawMode = true;
           });
@@ -200,6 +204,8 @@ class BaseGMapState extends State<BaseGMap> {
   }
 
   void _onMapTapped(LatLng latLng) {
+    _resetPolylineColor();
+    _resetMarkerColor();
     setState(() {
       markerSelected = false;
       polylineSelected = false;
@@ -232,6 +238,8 @@ class BaseGMapState extends State<BaseGMap> {
   }
 
   void _onMarkerTapped(MarkerId markerId) {
+    _resetPolylineColor();
+
     final Marker tappedMarker = markers[markerId];
     if (tappedMarker != null) {
       setState(() {
@@ -247,6 +255,7 @@ class BaseGMapState extends State<BaseGMap> {
             BitmapDescriptor.hueRed,
           ),
         );
+
         markers[markerId] = newMarker;
         markerSelected = true;
         polylineSelected = false;
@@ -298,7 +307,16 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
+  void _resetMarkerColor() {
+    //change marker's color when anything else tapped
+    markers.updateAll((markerId, marker) => marker = marker.copyWith(
+        iconParam:
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)));
+  }
+
   void _onPolylineTapped(PolylineId polylineId) {
+    _resetMarkerColor();
+
     final Polyline tappedPolyline = polylines[polylineId];
     if (tappedPolyline != null) {
       setState(() {
@@ -309,7 +327,7 @@ class BaseGMapState extends State<BaseGMap> {
         }
         selectedPolyline = polylineId;
         final Polyline newPolyline =
-            tappedPolyline.copyWith(colorParam: Color.fromRGBO(180, 0, 0, 1));
+            tappedPolyline.copyWith(colorParam: Color.fromRGBO(180, 0, 0, 0.5));
         polylines[polylineId] = newPolyline;
         polylineSelected = true;
         markerSelected = false;
@@ -348,6 +366,12 @@ class BaseGMapState extends State<BaseGMap> {
 
       polylineSelected = false;
     });
+  }
+
+  void _resetPolylineColor() {
+    //change polyline's color when anything else tapped
+    polylines.updateAll((polylineid, polyline) => polyline =
+        polyline.copyWith(colorParam: Color.fromRGBO(3, 169, 244, 1)));
   }
 
   _drawRouteDone() {}
