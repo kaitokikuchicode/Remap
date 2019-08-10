@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'baseMap.dart';
+import 'package:remap/remap_starting.dart';
 
 void main() => runApp(MyApp());
 
@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Remap',
-      home: BaseGMap(),
+      home: Starting(),
     );
   }
 }
