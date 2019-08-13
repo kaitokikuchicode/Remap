@@ -7,18 +7,19 @@ class Starting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => FirstScreen(),
+        '/': (context) => StartingScreen(),
         '/createAccount': (context) => CreateAccount(),
-        '/logIn': (context) => LogIn()
+        '/logIn': (context) => LogIn(),
+        //'/home': (context) => BaseGMap()
       },
-      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class FirstScreen extends StatelessWidget {
+class StartingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final devWid = MediaQuery.of(context).size.width; // device width
@@ -50,7 +51,9 @@ class FirstScreen extends StatelessWidget {
                   'Create account',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 15.0,
+                    fontSize: devHei * 0.019,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Roboto',
                   ),
                 ),
               ),
@@ -67,9 +70,11 @@ class FirstScreen extends StatelessWidget {
               child: Text(
                 'or',
                 style: TextStyle(
-                    color: Colors.black38,
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w300),
+                  color: Colors.black38,
+                  fontSize: devHei * 0.016,
+                  fontWeight: FontWeight.w200,
+                  fontFamily: 'Roboto',
+                ),
               ),
             ),
           ),
@@ -84,15 +89,21 @@ class FirstScreen extends StatelessWidget {
                     Text(
                       'Already have an account ?  ',
                       style: TextStyle(
-                          color: Colors.black38,
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w300),
+                        color: Colors.black38,
+                        fontSize: devHei * 0.016,
+                        fontWeight: FontWeight.w200,
+                        fontFamily: 'Roboto',
+                      ),
                     ),
                     GestureDetector(
                       child: Text(
                         'log in',
                         style: TextStyle(
-                            color: Colors.blue[300], fontFamily: 'Roboto'),
+                            fontSize: devHei * 0.016,
+                            color: Colors.blue[300],
+                            fontWeight: FontWeight.w200,
+                            fontFamily: 'Roboto',
+                            fontStyle: FontStyle.italic),
                       ),
                       onTap: () {
                         Navigator.pushNamed(context, '/logIn');
