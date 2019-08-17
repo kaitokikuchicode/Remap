@@ -128,7 +128,7 @@ class LogInState extends State<LogIn> {
                         : (_success
                             ? 'Successfully signed in ' + _userEmail
                             : 'Sign in failed'),
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: Colors.green),
                   ),
                 )
               ],

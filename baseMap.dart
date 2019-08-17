@@ -29,16 +29,19 @@ class BaseGMapState extends State<BaseGMap> {
   List<MarkerId> markerIds = [];
 
   Map<PolylineId, Polyline> polylines = {};
-  List<LatLng> polylineCoordinates = [];
   PolylineId selectedPolyline;
 
   bool drawMode = false;
-  bool drawDone = false;
+  bool drawRoute = false;
   bool markerSelected = false;
   bool polylineSelected = false;
   bool cameraMove = false;
+  bool ableToBeDone = false;
 
   String inpAd;
+
+  int routeCounter = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,29 +100,57 @@ class BaseGMapState extends State<BaseGMap> {
           ),
           LocationButton(goToDeviceLocation: _goToDeviceLocation),
           Container(
+              //menu button
+              child: Positioned(
+            bottom: 20,
+            left: 40,
+            child: Container(
+              width: 55,
+              height: 55,
+              child: RaisedButton(
+                elevation: 10,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0)),
+                child: Center(
+                  child: Icon(
+                    Icons.menu,
+                    color: Colors.grey,
+                  ),
+                ),
+                onPressed: () {
+                  _drawRouteDone();
+                },
+              ),
+            ),
+          )),
+          Container(
               //draw done button
-              child: drawDone
+              child: drawMode
                   ? Positioned(
-                      bottom: 20,
-                      left: 40,
+                      bottom: 85,
+                      right: 60,
                       child: Container(
-                        width: 55,
-                        height: 55,
+                        width: 90,
+                        height: 45,
                         child: RaisedButton(
-                          elevation: 10,
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30.0)),
-                          child: Center(
-                            child: Icon(
-                              Icons.done,
-                              color: Colors.greenAccent,
+                            elevation: 10,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25.0)),
+                            child: Text(
+                              'Done',
+                              style: TextStyle(
+                                color: Color.fromRGBO(119, 236, 124, 1),
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Roboto',
+                              ),
                             ),
-                          ),
-                          onPressed: () {
-                            _drawRouteDone();
-                          },
-                        ),
+                            onPressed: ableToBeDone & (polylines.length > 0)
+                                ? () {
+                                    _drawRouteDone();
+                                  }
+                                : null),
                       ),
                     )
                   : null),
@@ -191,7 +222,7 @@ class BaseGMapState extends State<BaseGMap> {
             drawMode ? drawMode = false : drawMode = true;
           });
         },
-        child: drawMode ? Icon(Icons.map) : Icon(Icons.brush),
+        child: drawMode ? Icon(Icons.arrow_back) : Icon(Icons.brush),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -285,11 +316,13 @@ class BaseGMapState extends State<BaseGMap> {
     setState(() {
       markers[markerId] = marker;
       markersLocation[markerId] = _centerLocation;
+      routeCounter++;
     });
 
-    if (markers.length != 0 && markers.length != 1) {
+    if (markers.length != 0 && markers.length != 1 && routeCounter > 1) {
       setState(() {
         _createPolyline();
+        ableToBeDone = true;
       });
     }
   }
@@ -342,13 +375,13 @@ class BaseGMapState extends State<BaseGMap> {
     final PolylineId polylineId = PolylineId(destination.toString());
 
     final Polyline polyline = Polyline(
+        geodesic: true,
         consumeTapEvents: true,
         polylineId: polylineId,
         visible: true,
-        //latlng is List<LatLng>
         points: [origin, destination],
-        width: 8,
-        color: Colors.lightBlue,
+        width: 6,
+        color: Color.fromRGBO(144, 238, 144, 0.5),
         onTap: () {
           _onPolylineTapped(polylineId);
         });
@@ -370,9 +403,15 @@ class BaseGMapState extends State<BaseGMap> {
 
   void _resetPolylineColor() {
     //change polyline's color when anything else tapped
-    polylines.updateAll((polylineid, polyline) => polyline =
-        polyline.copyWith(colorParam: Color.fromRGBO(3, 169, 244, 1)));
+    polylines.updateAll((polylineid, polyline) => polyline = polyline.copyWith(
+          colorParam: Color.fromRGBO(144, 238, 144, 0.5),
+        ));
   }
 
-  _drawRouteDone() {}
+  _drawRouteDone() {
+    setState(() {
+      ableToBeDone = false;
+      routeCounter = 0;
+    });
+  }
 }
