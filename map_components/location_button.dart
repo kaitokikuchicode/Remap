@@ -5,10 +5,9 @@ class LocationButton extends StatelessWidget {
   LocationButton({this.goToDeviceLocation});
   @override
   Widget build(BuildContext context) {
-    return Positioned(
+    return Align(
       //location button
-      bottom: 20,
-      right: 40,
+      alignment: Alignment(0.4, 0.95),
       child: Container(
         width: 55,
         height: 55,

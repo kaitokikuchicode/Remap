@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:line_icons/line_icons.dart';
 
 import 'package:remap/map_components/location_button.dart';
+//import 'package:flutter_polyline_points/flutter_polyline_points.dart'; used when _createFitPolyline called
 
 class BaseGMap extends StatefulWidget {
   @override
@@ -18,9 +19,12 @@ class BaseGMapState extends State<BaseGMap> {
   var currentLocation = PackLoc.LocationData;
   var location = new PackLoc.Location();
 
-  static final LatLng center =
-      const LatLng(-33.86711, 151.1947171); //first camera position
-  LatLng _centerLocation = center; //map's center location
+  //LatLng startPosition; //first camera position
+  LatLng _centerLocation; //map's center location
+  // String googleAPiKey = "your api key";
+  // List<LatLng> polylineCoordinates = [];
+  // PolylinePoints polylinePoints =
+  //     PolylinePoints(); //they are used when _createFitPolyline called
 
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   MarkerId selectedMarker;
@@ -40,17 +44,26 @@ class BaseGMapState extends State<BaseGMap> {
 
   String inpAd;
 
-  int routeCounter = 0;
+  int pinCounter = 0;
+
+  //try to set initial camera position to device location
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _goToDeviceLocation();
+  // }
 
   @override
   Widget build(BuildContext context) {
+    final devWid = MediaQuery.of(context).size.width; // device width
+    final devHei = MediaQuery.of(context).size.height; // device height
     return Scaffold(
       body: Stack(
         alignment: AlignmentDirectional.center,
         children: <Widget>[
           GoogleMap(
-            initialCameraPosition: CameraPosition(
-                target: LatLng(-33.86711, 151.1947171), zoom: 15),
+            initialCameraPosition:
+                CameraPosition(target: LatLng(35.6762, 139.6503), zoom: 15),
             onMapCreated: _onMapCreated,
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
@@ -63,10 +76,10 @@ class BaseGMapState extends State<BaseGMap> {
           Positioned(
             //search location input
             top: 35.0,
-            right: 15.0,
-            left: 15.0,
+            right: devWid * 0.08,
+            left: devWid * 0.08,
             child: Container(
-              height: 50.0,
+              height: devHei * 0.05,
               width: double.infinity,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30.0),
@@ -76,10 +89,16 @@ class BaseGMapState extends State<BaseGMap> {
                     hintText: 'Enter Address',
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.only(left: 15.0, top: 15.0),
-                    suffixIcon: IconButton(
-                        icon: Icon(Icons.search),
-                        onPressed: _searchLocation,
-                        iconSize: 30.0)),
+                    suffixIcon: Padding(
+                      padding: EdgeInsets.only(right: devWid * 0.02),
+                      child: IconButton(
+                          icon: Icon(
+                            Icons.search,
+                            size: devHei * 0.033,
+                          ),
+                          onPressed: _searchLocation,
+                          iconSize: devHei * 0.04),
+                    )),
                 onChanged: (val) {
                   setState(() {
                     inpAd = val;
@@ -93,17 +112,15 @@ class BaseGMapState extends State<BaseGMap> {
             child: drawMode
                 ? Icon(
                     LineIcons.crosshairs,
-                    size: 45,
+                    size: devHei * 0.04,
                     color: Colors.green,
                   )
                 : null,
           ),
           LocationButton(goToDeviceLocation: _goToDeviceLocation),
-          Container(
-              //menu button
-              child: Positioned(
-            bottom: 20,
-            left: 40,
+          Align(
+            //menu button
+            alignment: Alignment(-0.4, 0.95),
             child: Container(
               width: 55,
               height: 55,
@@ -119,20 +136,47 @@ class BaseGMapState extends State<BaseGMap> {
                   ),
                 ),
                 onPressed: () {
-                  _drawRouteDone();
+                  _popToMenu();
                 },
               ),
             ),
-          )),
+          ),
+          Align(
+            //mode change button
+            alignment: Alignment(0, 0.95),
+            child: Container(
+              width: 55,
+              height: 55,
+              child: RaisedButton(
+                elevation: 10,
+                color: Colors.green,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0)),
+                child: Center(
+                  child: drawMode
+                      ? Icon(Icons.arrow_back, color: Colors.white)
+                      : Icon(Icons.brush, color: Colors.white),
+                ),
+                onPressed: () {
+                  if (drawMode) {
+                    _resetMarkerColor();
+                    _resetPolylineColor();
+                  }
+                  setState(() {
+                    drawMode ? drawMode = false : drawMode = true;
+                  });
+                },
+              ),
+            ),
+          ),
           Container(
               //draw done button
               child: drawMode
                   ? Positioned(
-                      bottom: 85,
-                      right: 60,
+                      bottom: devHei * 0.17,
                       child: Container(
-                        width: 90,
-                        height: 45,
+                        width: devWid * 0.2,
+                        height: devHei * 0.045,
                         child: RaisedButton(
                             elevation: 10,
                             color: Colors.white,
@@ -141,6 +185,7 @@ class BaseGMapState extends State<BaseGMap> {
                             child: Text(
                               'Done',
                               style: TextStyle(
+                                fontSize: devHei * 0.017,
                                 color: Color.fromRGBO(119, 236, 124, 1),
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Roboto',
@@ -157,8 +202,8 @@ class BaseGMapState extends State<BaseGMap> {
           Container(
               //add marker button
               child: drawMode
-                  ? Positioned(
-                      bottom: 80,
+                  ? Align(
+                      alignment: Alignment(0, 0.8),
                       child: Container(
                         width: 55,
                         height: 55,
@@ -186,8 +231,8 @@ class BaseGMapState extends State<BaseGMap> {
                       drawMode &&
                       !cameraMove
                   ? Positioned(
-                      top: 300,
-                      right: 100,
+                      top: devHei * 0.45,
+                      right: devWid * 0.3,
                       child: Container(
                         width: 55,
                         height: 55,
@@ -210,21 +255,6 @@ class BaseGMapState extends State<BaseGMap> {
                   : null),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        //mode change button
-        backgroundColor: Colors.green,
-        onPressed: () {
-          if (drawMode) {
-            _resetMarkerColor();
-            _resetPolylineColor();
-          }
-          setState(() {
-            drawMode ? drawMode = false : drawMode = true;
-          });
-        },
-        child: drawMode ? Icon(Icons.arrow_back) : Icon(Icons.brush),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -316,10 +346,10 @@ class BaseGMapState extends State<BaseGMap> {
     setState(() {
       markers[markerId] = marker;
       markersLocation[markerId] = _centerLocation;
-      routeCounter++;
+      pinCounter++;
     });
 
-    if (markers.length != 0 && markers.length != 1 && routeCounter > 1) {
+    if (markers.length != 0 && markers.length != 1 && pinCounter > 1) {
       setState(() {
         _createPolyline();
         ableToBeDone = true;
@@ -378,7 +408,6 @@ class BaseGMapState extends State<BaseGMap> {
         geodesic: true,
         consumeTapEvents: true,
         polylineId: polylineId,
-        visible: true,
         points: [origin, destination],
         width: 6,
         color: Color.fromRGBO(144, 238, 144, 0.5),
@@ -411,7 +440,40 @@ class BaseGMapState extends State<BaseGMap> {
   _drawRouteDone() {
     setState(() {
       ableToBeDone = false;
-      routeCounter = 0;
+      pinCounter = 0;
     });
   }
+
+  _popToMenu() {}
+
+  //create polyline which fits maps route
+  // _createFitPolyline() async {
+  //   LatLng origin = markersLocation[markerIds[markerIds.length - 2]];
+  //   LatLng destination = markersLocation[markerIds[markerIds.length - 1]];
+  //   final PolylineId polylineId = PolylineId(destination.toString());
+
+  //   List<PointLatLng> result = await polylinePoints.getRouteBetweenCoordinates(
+  //       googleAPiKey,
+  //       origin.latitude,
+  //       origin.longitude,
+  //       destination.latitude,
+  //       destination.longitude);
+  //   if (result.isNotEmpty) {
+  //     result.forEach((PointLatLng point) {
+  //       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+  //     });
+  //   }
+
+  //   Polyline polyline = Polyline(
+  //       polylineId: polylineId,
+  //       points: polylineCoordinates,
+  //       consumeTapEvents: true,
+  //       width: 6,
+  //       color: Color.fromRGBO(144, 238, 144, 0.5),
+  //       onTap: () {
+  //         _onPolylineTapped(polylineId);
+  //       });
+  //   polylines[polylineId] = polyline;
+  //   setState(() {});
+  // }
 }

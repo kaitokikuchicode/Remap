@@ -29,13 +29,51 @@ class StartingScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Column(
         children: <Widget>[
-          SizedBox(
-            width: double.infinity,
-            height: devHei * 0.40,
-            child: Image.asset(
-              'assets/images/remap_header.png',
-              fit: BoxFit.fill,
-            ),
+          Stack(
+            children: <Widget>[
+              SizedBox(
+                width: double.infinity,
+                height: devHei * 0.40,
+                child: Image.asset(
+                  'assets/images/remap_header_pic.png',
+                  fit: BoxFit.fill,
+                ),
+              ),
+              Column(
+                children: <Widget>[
+                  Container(
+                    padding: EdgeInsets.only(top: devHei * 0.04),
+                    child: Center(
+                      child: Image.asset('assets/images/remap_logo.png'),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.only(top: devHei * 0.01),
+                    child: Text(
+                      'Remap',
+                      style: TextStyle(
+                        color: Color.fromRGBO(31, 157, 28, 1),
+                        fontSize: devHei * 0.045,
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(top: devHei * 0.02),
+                    child: Text(
+                      'Discover another small world in minutes',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: devHei * 0.02,
+                        fontFamily: 'Roboto',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           Container(
             margin: EdgeInsets.only(top: 30),
