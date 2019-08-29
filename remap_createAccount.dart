@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import 'baseMap.dart';
+import 'package:remap/remap_logIn.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -12,10 +11,14 @@ class CreateAccount extends StatefulWidget {
 
 class CreateAccountState extends State<CreateAccount> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _success;
-  String _userEmail;
+  String _email, _password;
+  String _errorMessage;
+
+  @override
+  void initState() {
+    _errorMessage = '';
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +65,21 @@ class CreateAccountState extends State<CreateAccount> {
               ),
             ),
           ),
+          Container(
+            margin: EdgeInsets.only(top: 10.0),
+            child: Center(
+              child: (_errorMessage.length > 0 && _errorMessage != null)
+                  ? Text(
+                      _errorMessage,
+                      style: TextStyle(
+                          color: Colors.red,
+                          fontSize: devHei * 0.01,
+                          fontWeight: FontWeight.w200,
+                          fontFamily: 'Roboto'),
+                    )
+                  : null,
+            ),
+          ),
           Form(
             key: _formKey,
             child: Column(
@@ -70,27 +88,22 @@ class CreateAccountState extends State<CreateAccount> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 40),
                   child: TextFormField(
-                    controller: _emailController,
                     decoration: InputDecoration(labelText: 'Email address'),
-                    validator: (String value) {
-                      if (value.isEmpty) {
-                        return 'Please enter some text';
-                      }
-                      return null;
-                    },
+                    validator: emailValidator,
+                    onSaved: (value) => _email = value.trim(),
                   ),
                 ),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 40),
                   child: TextFormField(
-                    controller: _passwordController,
+                    obscureText: true,
                     decoration: InputDecoration(labelText: 'Password'),
                     validator: (String value) {
-                      if (value.isEmpty) {
-                        return 'Please enter some text';
-                      }
-                      return null;
+                      return !(value.length > 6)
+                          ? 'Please enter longer password'
+                          : null;
                     },
+                    onSaved: (value) => _password = value.trim(),
                   ),
                 ),
                 Container(
@@ -118,14 +131,6 @@ class CreateAccountState extends State<CreateAccount> {
                     ),
                   ),
                 ),
-                Container(
-                  alignment: Alignment.center,
-                  child: Text(_success == null
-                      ? ''
-                      : (_success
-                          ? 'Successfully registered ' + _userEmail
-                          : 'Registration failed')),
-                )
               ],
             ),
           ),
@@ -134,31 +139,28 @@ class CreateAccountState extends State<CreateAccount> {
     );
   }
 
-  @override
-  void dispose() {
-    // Clean up the controller when the Widget is disposed
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  String emailValidator(String value) {
+    Pattern pattern =
+        r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
+    RegExp regex = new RegExp(pattern);
+    if (!regex.hasMatch(value))
+      return 'Enter Valid Email';
+    else
+      return null;
   }
 
   void _register() async {
-    final FirebaseUser user = (await _auth.createUserWithEmailAndPassword(
-      email: _emailController.text,
-      password: _passwordController.text,
-    ))
-        .user;
-    if (user != null) {
-      setState(() {
-        _success = true;
-        _userEmail = user.email;
-      });
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => BaseGMap()),
-      );
-    } else {
-      _success = false;
+    if (_formKey.currentState.validate()) {
+      _formKey.currentState.save();
+      try {
+        await _auth.createUserWithEmailAndPassword(
+            email: _email, password: _password);
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => LogIn()));
+      } catch (e) {
+        print(e.message);
+        _errorMessage = e.message;
+      }
     }
   }
 }

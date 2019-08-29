@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'package:remap/remap_starting.dart';
+import 'package:remap/remap_createAccount.dart';
 
 void main() => runApp(MyApp());
 
@@ -10,7 +9,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Remap',
-      home: Starting(),
+      home: CreateAccount(),
     );
   }
 }
