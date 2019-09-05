@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'baseMap.dart';
+import 'main.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -12,8 +12,11 @@ class LogIn extends StatefulWidget {
 
 class LogInState extends State<LogIn> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String _email, _password;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   String _errorMessage;
+
+  //bool _isIos;
 
   @override
   void initState() {
@@ -23,24 +26,33 @@ class LogInState extends State<LogIn> {
 
   @override
   Widget build(BuildContext context) {
+    //_isIos = Theme.of(context).platform == TargetPlatform.iOS;
     final devWid = MediaQuery.of(context).size.width; // device width
     final devHei = MediaQuery.of(context).size.height; // device height
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: <Widget>[
-          Container(
-            margin: EdgeInsets.only(top: devHei * 0.05),
-            child: Stack(
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            Stack(
               children: <Widget>[
-                Container(
-                  child: Center(
-                    child: Image.asset('assets/images/remap_logo.png'),
+                Center(
+                  child: Hero(
+                    tag: 'logo',
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 40,
+                      height: 35,
+                    ),
                   ),
                 ),
                 Container(
+                  width: 35,
+                  height: 35,
                   child: IconButton(
+                    padding: EdgeInsets.all(
+                        0), //IconButton has padding: EdgeInsets.all(8.0) as the default
                     icon: Icon(
                       Icons.arrow_back_ios,
                       color: Color.fromRGBO(47, 142, 253, 1),
@@ -52,92 +64,104 @@ class LogInState extends State<LogIn> {
                 ),
               ],
             ),
-          ),
-          Container(
-            padding: EdgeInsets.only(bottom: devHei * 0.08),
-            child: Center(
-              child: Text(
-                "Log in to Remap",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: devHei * 0.030,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Roboto',
+            SizedBox(
+              height: devHei * 0.01,
+            ),
+            Container(
+              padding: EdgeInsets.only(bottom: devHei * 0.08),
+              child: Center(
+                child: Text(
+                  "Log in to Remap",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: devHei * 0.030,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Roboto',
+                  ),
                 ),
               ),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.only(top: 10.0),
-            child: Center(
-              child: (_errorMessage.length > 0 && _errorMessage != null)
-                  ? Text(
-                      _errorMessage,
-                      style: TextStyle(
-                          color: Colors.red,
-                          fontSize: devHei * 0.01,
-                          fontWeight: FontWeight.w200,
-                          fontFamily: 'Roboto'),
-                    )
-                  : null,
+            Container(
+              margin: EdgeInsets.only(top: 10.0),
+              child: Center(
+                child: (_errorMessage.length > 0 && _errorMessage != null)
+                    ? Text(
+                        _errorMessage,
+                        style: TextStyle(
+                            color: Colors.red,
+                            fontSize: devHei * 0.015,
+                            fontWeight: FontWeight.w200,
+                            fontFamily: 'Roboto'),
+                      )
+                    : null,
+              ),
             ),
-          ),
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 40),
-                  child: TextFormField(
-                    decoration: InputDecoration(labelText: 'Email address'),
-                    validator: emailValidator,
-                    onSaved: (value) => _email = value.trim(),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(labelText: 'Email address'),
+                      validator: emailValidator,
+                    ),
                   ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 40),
-                  child: TextFormField(
-                    decoration: InputDecoration(labelText: 'Password'),
-                    validator: (String value) {
-                      return !(value.length > 6)
-                          ? 'Please enter longer password'
-                          : null;
-                    },
-                    onSaved: (value) => _password = value.trim(),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(labelText: 'Password'),
+                      validator: (String value) {
+                        return !(value.length > 6)
+                            ? 'Please enter longer password'
+                            : null;
+                      },
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  alignment: Alignment.center,
-                  margin: EdgeInsets.only(left: devWid * 0.6),
-                  child: RaisedButton(
-                    elevation: 7,
-                    color: Color.fromRGBO(119, 236, 124, 1),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0)),
-                    onPressed: () async {
-                      if (_formKey.currentState.validate()) {
-                        _signInWithEmailAndPassword();
-                      }
-                    },
-                    child: const Text(
-                      'Log in',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w200,
-                        fontFamily: 'Roboto',
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    alignment: Alignment.center,
+                    margin: EdgeInsets.only(left: devWid * 0.6),
+                    child: RaisedButton(
+                      elevation: 7,
+                      color: Color.fromRGBO(119, 236, 124, 1),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30.0)),
+                      onPressed: () async {
+                        if (_formKey.currentState.validate()) {
+                          _signInWithEmailAndPassword();
+                        }
+                      },
+                      child: const Text(
+                        'Log in',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w200,
+                          fontFamily: 'Roboto',
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   String emailValidator(String value) {
@@ -153,14 +177,24 @@ class LogInState extends State<LogIn> {
   void _signInWithEmailAndPassword() async {
     try {
       FirebaseUser user = (await _auth.signInWithEmailAndPassword(
-              email: _email, password: _password))
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim()))
           .user;
 
-      Navigator.push(context,
-          MaterialPageRoute(builder: (context) => BaseGMap(user: user)));
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (c, a1, a2) => BaseGMap(user: user),
+          transitionsBuilder: (c, anim, a2, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: Duration(milliseconds: 2000),
+        ),
+      );
     } catch (e) {
-      print(e.message);
-      _errorMessage = e.message;
+      print(e.toString());
+      setState(() {
+        _errorMessage = e.message;
+      });
     }
   }
 }
