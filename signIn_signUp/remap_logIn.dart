@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
-import 'main.dart';
-
-final FirebaseAuth _auth = FirebaseAuth.instance;
+import '../main.dart';
+import 'remap_starting.dart';
 
 class LogIn extends StatefulWidget {
   @override
@@ -27,8 +27,6 @@ class LogInState extends State<LogIn> {
   @override
   Widget build(BuildContext context) {
     //_isIos = Theme.of(context).platform == TargetPlatform.iOS;
-    final devWid = MediaQuery.of(context).size.width; // device width
-    final devHei = MediaQuery.of(context).size.height; // device height
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -82,6 +80,8 @@ class LogInState extends State<LogIn> {
               ),
             ),
             Container(
+              width: devWid * 0.7,
+              height: devHei * 0.06,
               margin: EdgeInsets.only(top: 10.0),
               child: Center(
                 child: (_errorMessage.length > 0 && _errorMessage != null)
@@ -99,19 +99,25 @@ class LogInState extends State<LogIn> {
             Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    width: devWid * 0.7,
+                    height: devHei * 0.085,
                     child: TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(labelText: 'Email address'),
-                      validator: emailValidator,
+                      validator: _emailValidator,
                     ),
                   ),
+                  SizedBox(
+                    width: devWid * 0.7,
+                    height: devHei * 0.015,
+                  ),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    width: devWid * 0.7,
+                    height: devHei * 0.085,
                     child: TextFormField(
                       controller: _passwordController,
                       obscureText: true,
@@ -121,6 +127,9 @@ class LogInState extends State<LogIn> {
                             ? 'Please enter longer password'
                             : null;
                       },
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(32),
+                      ],
                     ),
                   ),
                   Container(
@@ -164,7 +173,7 @@ class LogInState extends State<LogIn> {
     super.dispose();
   }
 
-  String emailValidator(String value) {
+  String _emailValidator(String value) {
     Pattern pattern =
         r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
     RegExp regex = new RegExp(pattern);
@@ -176,7 +185,7 @@ class LogInState extends State<LogIn> {
 
   void _signInWithEmailAndPassword() async {
     try {
-      FirebaseUser user = (await _auth.signInWithEmailAndPassword(
+      FirebaseUser _user = (await auth.signInWithEmailAndPassword(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim()))
           .user;
@@ -184,7 +193,7 @@ class LogInState extends State<LogIn> {
       Navigator.push(
         context,
         PageRouteBuilder(
-          pageBuilder: (c, a1, a2) => BaseGMap(user: user),
+          pageBuilder: (c, a1, a2) => BaseGMap(user: _user),
           transitionsBuilder: (c, anim, a2, child) =>
               FadeTransition(opacity: anim, child: child),
           transitionDuration: Duration(milliseconds: 2000),

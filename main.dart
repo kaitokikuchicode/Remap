@@ -1,17 +1,24 @@
-import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart'; //used when _createFitPolyline called
-import 'package:remap/remap_load.dart';
+
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
 
-import 'package:remap/remap_starting.dart';
+import 'package:remap/signIn_signUp/remap_starting.dart';
+import 'package:remap/remap_load.dart';
+import 'package:remap/slider_panel/slider_panel.dart';
+import 'package:remap/search_location.dart';
 
-final FirebaseAuth _auth = FirebaseAuth.instance;
+String googleAPiKey = "Your API key";
+
+FirebaseUser user;
+
 void main() => runApp(MyApp());
 
 class BaseGMap extends StatefulWidget {
@@ -22,8 +29,7 @@ class BaseGMap extends StatefulWidget {
 }
 
 class BaseGMapState extends State<BaseGMap> {
-  Completer<GoogleMapController> _controller = Completer();
-  MapType _currentMapType = MapType.normal;
+  MapType currentMapType = MapType.normal;
 
   var currentLocation = PackLoc.LocationData;
   var location = new PackLoc.Location();
@@ -32,7 +38,8 @@ class BaseGMapState extends State<BaseGMap> {
 
   Geolocator geolocator = Geolocator();
   //LatLng _centerLocation; //map's center location
-  String googleAPiKey = "Your API key";
+
+  Completer<GoogleMapController> controller = Completer();
 
   PolylinePoints polylinePoints =
       PolylinePoints(); //they are used when _createFitPolyline called
@@ -42,6 +49,7 @@ class BaseGMapState extends State<BaseGMap> {
   int _markerIdCounter = 0;
   Map<MarkerId, LatLng> markersLocation = {}; //used when draw polyline
   List<MarkerId> markerIds = [];
+  int pinCounter = 0;
 
   Map<PolylineId, Polyline> polylines = {};
   PolylineId selectedPolyline;
@@ -53,24 +61,22 @@ class BaseGMapState extends State<BaseGMap> {
   bool cameraMove = false;
   bool ableToBeDone = false;
 
-  String currentPanelType; // current widget type inside panel
-  String currentSettingPage; // current setting page
+  PanelController pc = PanelController();
 
   String inpAd;
 
-  int pinCounter = 0;
-
-  PanelController _pc = PanelController();
   final double _initButtonsPos = 90.0;
   double _buttonsPos;
   double _panelHeightO = 575.0;
   double _panelHeightC = 110.0;
 
-  double devWid, devHei;
-
   @override
   void initState() {
     super.initState();
+
+    setState(() {
+      user = widget.user;
+    });
 
     setState(() {
       isLoading = true;
@@ -82,21 +88,18 @@ class BaseGMapState extends State<BaseGMap> {
       });
     });
     _buttonsPos = _initButtonsPos;
-    currentPanelType = 'USER';
-    currentSettingPage = 'SETTING_HOME';
 
     setState(() {
       isLoading = false;
     });
   }
 
+  refresh() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    setState(() {
-      devWid = MediaQuery.of(context).size.width; // device width
-      devHei = MediaQuery.of(context).size.height; // device height
-    });
-
     return isLoading || startPosition == null
         ? RemapLoad() //while user's location == null
         : Scaffold(
@@ -104,11 +107,11 @@ class BaseGMapState extends State<BaseGMap> {
               alignment: Alignment.topCenter,
               children: <Widget>[
                 SlidingUpPanel(
-                  controller: _pc,
+                  controller: pc,
                   maxHeight: _panelHeightO,
                   minHeight: _panelHeightC,
                   renderPanelSheet: false,
-                  panel: _sliderPanel(),
+                  panel: SliderPanel(this), //_sliderPanel(),
                   body: _mainBody(),
                   onPanelSlide: (double pos) => setState(() {
                     _buttonsPos =
@@ -123,60 +126,27 @@ class BaseGMapState extends State<BaseGMap> {
           );
   }
 
-  Widget _sliderPanel() {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.all(Radius.circular(24.0)),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 10.0,
-              color: Colors.grey,
-            ),
-          ]),
-      margin: const EdgeInsets.all(24.0),
-      child: _insidePanel(),
-    );
-  }
-
-  Widget _insidePanel() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          height: 12.0,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Container(
-              width: 30,
-              height: 5,
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.all(Radius.circular(12.0))),
-            ),
-          ],
-        ),
-        _buttons(),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(12.0),
-                    bottomRight: Radius.circular(12.0))),
-            child: _buttonWidgets(),
-          ),
-        )
-      ],
-    );
-  }
-
   Widget _myLocationButton() {
     return Positioned(
       right: devWid * 0.10,
       bottom: _buttonsPos,
       child: _myLocationB(),
+    );
+  }
+
+  Widget _myLocationB() {
+    return Container(
+      width: 55.0,
+      height: 55.0,
+      margin: EdgeInsets.all(5.0),
+      child: FloatingActionButton(
+        child: Icon(
+          Icons.gps_fixed,
+          color: Colors.grey,
+        ),
+        onPressed: _goToDeviceLocation,
+        backgroundColor: Colors.white,
+      ),
     );
   }
 
@@ -227,7 +197,8 @@ class BaseGMapState extends State<BaseGMap> {
       alignment: AlignmentDirectional.center,
       children: <Widget>[
         _googleMap(),
-        _searchLocationInput(),
+        SearchLocation(this),
+        //_searchLoc(),
         _deleteButton(),
       ],
     );
@@ -241,7 +212,7 @@ class BaseGMapState extends State<BaseGMap> {
       onMapCreated: _onMapCreated,
       myLocationEnabled: true,
       myLocationButtonEnabled: false,
-      mapType: _currentMapType,
+      mapType: currentMapType,
       //onCameraMove: _getCenterLocation,
       onTap: (value) {
         if (drawMode && !markerSelected && !polylineSelected)
@@ -250,45 +221,6 @@ class BaseGMapState extends State<BaseGMap> {
       },
       markers: Set<Marker>.of(markers.values),
       polylines: Set<Polyline>.of(polylines.values),
-    );
-  }
-
-  Widget _searchLocationInput() {
-    return Positioned(
-      top: 35.0,
-      right: devWid * 0.08,
-      left: devWid * 0.08,
-      child: Material(
-        borderRadius: BorderRadius.circular(10.0),
-        elevation: 10.0,
-        child: Container(
-          height: devHei * 0.05,
-          width: double.infinity,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10.0), color: Colors.white),
-          child: TextField(
-            decoration: InputDecoration(
-                hintText: 'Enter Address',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.only(left: 15.0, top: 15.0),
-                suffixIcon: Padding(
-                  padding: EdgeInsets.only(right: devWid * 0.02),
-                  child: IconButton(
-                      icon: Icon(
-                        Icons.search,
-                        size: devHei * 0.033,
-                      ),
-                      onPressed: _searchLocation,
-                      iconSize: devHei * 0.04),
-                )),
-            onChanged: (val) {
-              setState(() {
-                inpAd = val;
-              });
-            },
-          ),
-        ),
-      ),
     );
   }
 
@@ -324,29 +256,6 @@ class BaseGMapState extends State<BaseGMap> {
             : null);
   }
 
-  Widget _buttons() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(24.0)),
-      ),
-      height: 70.0,
-      width: double.infinity,
-      child: Center(
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: <Widget>[
-            _settingB(),
-            _userB(),
-            _rankingB(),
-            _favoriteB(),
-            _searchB(),
-            _mapTypeB(),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _drawRoute() {
     return Container(
       width: 55.0,
@@ -370,302 +279,24 @@ class BaseGMapState extends State<BaseGMap> {
     );
   }
 
-  Widget _settingB() {
-    return _buttonClass(
-        Colors.white, Icons.settings, Colors.grey, _changePanelType,
-        type: 'SETTING');
-  }
-
-  Widget _userB() {
-    return _buttonClass(
-        Colors.white, Icons.person, Colors.black54, _changePanelType,
-        type: 'USER');
-  }
-
-  Widget _rankingB() {
-    return _buttonClass(
-        Colors.white, Icons.star, Colors.greenAccent[400], _changePanelType,
-        type: 'RANKING');
-  }
-
-  Widget _favoriteB() {
-    return _buttonClass(
-        Colors.white, Icons.favorite, Colors.greenAccent[400], _changePanelType,
-        type: 'FAVORITE');
-  }
-
-  Widget _searchB() {
-    return _buttonClass(
-        Colors.white, Icons.search, Colors.blue[200], _changePanelType,
-        type: 'SEARCH');
-  }
-
-  Widget _mapTypeB() {
-    return _buttonClass(
-        Colors.white, Icons.map, Colors.greenAccent[400], _changeMapType);
-  }
-
-  Widget _myLocationB() {
-    return _buttonClass(
-        Colors.white, Icons.gps_fixed, Colors.grey, _goToDeviceLocation,
-        buttonWid: 55.0, buttonHei: 55.0);
-  }
-
-  Widget _buttonClass(
-      Color buttonColor, IconData icon, Color iconColor, onPressedFunction,
-      {buttonWid = 50.0, buttonHei = 50.0, type = ''}) {
-    return Container(
-      width: buttonWid,
-      height: buttonHei,
-      margin: EdgeInsets.all(5),
-      child: FloatingActionButton(
-        child: Icon(
-          icon,
-          color: iconColor,
-        ),
-        onPressed: type == ''
-            ? onPressedFunction
-            : () {
-                onPressedFunction(type);
-                _pc.animatePanelToPosition(1.0);
-              },
-        backgroundColor: buttonColor,
-      ),
-    );
-  }
-
-  _changePanelType(type) {
-    setState(() {
-      currentPanelType = type;
-      currentSettingPage = 'SETTING_HOME';
-    });
-  }
-
-  _buttonWidgets() {
-    switch (currentPanelType) {
-      case 'SETTING':
-        return _setting();
-        break;
-      case 'USER':
-        return _user();
-        break;
-      case 'RANKING':
-        return _ranking();
-        break;
-      case 'FAVORITE':
-        return _favorite();
-        break;
-      case 'SEARCH':
-        return _search();
-        break;
-      case 'USER_SETTING':
-        return _settingUser();
-        break;
-    }
-  }
-
-  Widget _setting() {
-    return Container(
-      child: Center(
-        child: _settingPageWidgets(),
-      ),
-    );
-  }
-
-  _settingPageWidgets() {
-    switch (currentSettingPage) {
-      case 'SETTING_HOME':
-        return _settingHome();
-        break;
-      case 'SETTING_USER':
-        return _settingUser();
-        break;
-    }
-  }
-
-  Widget _settingHome() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Material(
-          borderRadius: BorderRadius.all(Radius.circular(10.0)),
-          elevation: 3.0,
-          child: InkWell(
-            child: Container(
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(10.0))),
-              width: devWid * 0.4,
-              height: devHei * 0.045,
-              child: Center(
-                child: Text(
-                  'User setting',
-                  style: TextStyle(
-                    color: Colors.black45,
-                    fontSize: devHei * 0.02,
-                    fontWeight: FontWeight.w200,
-                    fontFamily: 'Roboto',
-                  ),
-                ),
-              ),
-            ),
-            onTap: () {
-              setState(() {
-                currentSettingPage = 'SETTING_USER';
-              });
-            },
-          ),
-        ),
-        SizedBox(
-          height: devHei * 0.02,
-        ),
-        Material(
-          borderRadius: BorderRadius.all(Radius.circular(10.0)),
-          elevation: 3.0,
-          child: InkWell(
-            child: Container(
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(10.0))),
-              width: devWid * 0.4,
-              height: devHei * 0.045,
-              child: Center(
-                child: Text(
-                  'Log out',
-                  style: TextStyle(
-                    color: Colors.black38,
-                    fontSize: devHei * 0.02,
-                    fontWeight: FontWeight.w200,
-                    fontFamily: 'Roboto',
-                  ),
-                ),
-              ),
-            ),
-            onTap: _logOutAlert,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _settingUser() {
-    return Container(
-      child: Center(
-        child: Text('user setting'),
-      ),
-    );
-  }
-
-  Future<bool> _logOutAlert() {
-    return Alert(
-      context: context,
-      style: AlertStyle(
-          animationType: AnimationType.grow,
-          isCloseButton: false,
-          titleStyle: TextStyle(
-            fontSize: devHei * 0.025,
-            fontWeight: FontWeight.w500,
-            fontFamily: 'Roboto',
-          ),
-          descStyle: TextStyle(
-            fontSize: devHei * 0.015,
-            fontWeight: FontWeight.w200,
-            fontFamily: 'Roboto',
-          )),
-      title: 'Log out of Remap?',
-      desc: 'Are you sure you want to log out of Remap?',
-      buttons: [
-        DialogButton(
-          child: Text(
-            'Cancel',
-            style: TextStyle(
-              fontSize: devHei * 0.017,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Roboto',
-            ),
-          ),
-          radius: BorderRadius.all(Radius.circular(10.0)),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.black12,
-        ),
-        DialogButton(
-          child: Text(
-            'Log out',
-            style: TextStyle(
-              color: Colors.red,
-              fontSize: devHei * 0.015,
-              fontWeight: FontWeight.w200,
-              fontFamily: 'Roboto',
-            ),
-          ),
-          radius: BorderRadius.all(Radius.circular(10.0)),
-          onPressed: () => _handleLogOut(),
-          color: Colors.red[100],
-        )
-      ],
-    ).show();
-  }
-
-  Future<Null> _handleLogOut() async {
-    await _auth.signOut();
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (c, a1, a2) => StartingScreen(),
-        transitionsBuilder: (c, anim, a2, child) =>
-            FadeTransition(opacity: anim, child: child),
-        transitionDuration: Duration(milliseconds: 1000),
-      ),
-    );
-  }
-
-  Widget _user() {
-    return Container(
-      child: Center(
-        child: Text('${widget.user}'),
-      ),
-    );
-  }
-
-  Widget _ranking() {
-    return Container(
-      child: Center(
-        child: Text('ranking'),
-      ),
-    );
-  }
-
-  Widget _favorite() {
-    return Container(
-      child: Center(
-        child: Text('favorite'),
-      ),
-    );
-  }
-
-  Widget _search() {
-    return Container(
-      child: Center(
-        child: Text('search'),
-      ),
-    );
-  }
-
+  //TODO Peek problem or not use geolocator then change it to something by Oct 7
   Future<Position> _getLocation() async {
     var currentLocation;
     try {
       currentLocation = await geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.best);
+          desiredAccuracy: LocationAccuracy.high);
     } catch (e) {
+      print(e);
       currentLocation = null;
     }
     return currentLocation;
   }
 
-  _onMapCreated(GoogleMapController controller) {
-    setState(() {
-      _controller.complete(controller);
-    });
+  _onMapCreated(GoogleMapController gmapcontroller) {
+    if (!controller.isCompleted)
+      setState(() {
+        controller.complete(gmapcontroller);
+      });
   }
 
   void _onMapTapped() {
@@ -683,16 +314,6 @@ class BaseGMapState extends State<BaseGMap> {
   //     cameraMove = true;
   //   });
   // }
-
-  void _searchLocation() {
-    Geolocator().placemarkFromAddress(inpAd).then((result) async {
-      final GoogleMapController controller = await _controller.future;
-      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-          target:
-              LatLng(result[0].position.latitude, result[0].position.longitude),
-          zoom: 15.0)));
-    });
-  }
 
   void _onMarkerTapped(MarkerId markerId) {
     _resetPolylineColor();
@@ -830,18 +451,11 @@ class BaseGMapState extends State<BaseGMap> {
     });
   }
 
-  _changeMapType() {
-    setState(() {
-      _currentMapType =
-          _currentMapType == MapType.normal ? MapType.hybrid : MapType.normal;
-    });
-  }
-
   void _goToDeviceLocation() async {
     Position position = await Geolocator()
         .getLastKnownPosition(desiredAccuracy: LocationAccuracy.high);
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+    final GoogleMapController gmapcontroller = await controller.future;
+    gmapcontroller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
         target: LatLng(position.latitude, position.longitude), zoom: 15)));
   }
 
@@ -878,6 +492,7 @@ class BaseGMapState extends State<BaseGMap> {
       polylines[polylineId] = polyline;
     });
   }
+
   //create polyline which doesn't fit map's route
   // _createPolyline() {
   //   LatLng origin = markersLocation[markerIds[markerIds.length - 2]];

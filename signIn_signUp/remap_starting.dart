@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:remap/main.dart';
 import 'package:remap/remap_load.dart';
-
 import 'remap_createAccount.dart';
 import 'remap_logIn.dart';
+
+final FirebaseAuth auth = FirebaseAuth.instance;
+final Firestore db = Firestore.instance;
+double devHei, devWid; // device's height, device's width
 
 class MyApp extends StatelessWidget {
   @override
@@ -22,9 +27,7 @@ class StartingScreen extends StatefulWidget {
 }
 
 class StartingScreenState extends State<StartingScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  FirebaseUser user;
-  bool isLoding = false;
+  bool _isLoding = false;
 
   @override
   void initState() {
@@ -34,18 +37,16 @@ class StartingScreenState extends State<StartingScreen> {
 
   Future<bool> _getUser() async {
     setState(() {
-      isLoding = true;
+      _isLoding = true;
     });
 
-    FirebaseUser firebaseUser = await _auth.currentUser();
+    FirebaseUser _user = await auth.currentUser();
 
-    user = firebaseUser;
-
-    if (user != null) {
+    if (_user != null) {
       Navigator.push(
         context,
         PageRouteBuilder(
-          pageBuilder: (c, a1, a2) => BaseGMap(user: user),
+          pageBuilder: (c, a1, a2) => BaseGMap(user: _user),
           transitionsBuilder: (c, anim, a2, child) =>
               FadeTransition(opacity: anim, child: child),
           transitionDuration: Duration(milliseconds: 0),
@@ -54,17 +55,20 @@ class StartingScreenState extends State<StartingScreen> {
     }
 
     setState(() {
-      isLoding = false;
+      _isLoding = false;
     });
 
-    return (user != null) ? true : false;
+    return (_user != null) ? true : false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final devWid = MediaQuery.of(context).size.width; // device width
-    final devHei = MediaQuery.of(context).size.height; // device height
-    return isLoding
+    setState(() {
+      devWid = MediaQuery.of(context).size.width;
+      devHei = MediaQuery.of(context).size.height;
+    });
+
+    return _isLoding
         ? RemapLoad()
         : Scaffold(
             backgroundColor: Colors.white,

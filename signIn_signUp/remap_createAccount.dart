@@ -4,8 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 
 import 'package:remap/main.dart';
-
-final FirebaseAuth _auth = FirebaseAuth.instance;
+import 'remap_starting.dart';
 
 class CreateAccount extends StatefulWidget {
   @override
@@ -20,9 +19,10 @@ class CreateAccountState extends State<CreateAccount> {
   final TextEditingController _passwordController = TextEditingController();
 
   String _errorMessage;
-  String _userNameAlert;
 
-  double devWid, devHei;
+  bool _alert;
+  String _userNameAlert;
+  Pattern userNamePattern = r'^([a-z0-9_]{3,16})$';
 
   //bool _isIos;
 
@@ -30,16 +30,14 @@ class CreateAccountState extends State<CreateAccount> {
   void initState() {
     _errorMessage = '';
     _userNameAlert = '';
+    _alert = false;
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     //_isIos = Theme.of(context).platform == TargetPlatform.iOS;
-    setState(() {
-      devWid = MediaQuery.of(context).size.width; // device width
-      devHei = MediaQuery.of(context).size.height; // device height
-    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -131,7 +129,7 @@ class CreateAccountState extends State<CreateAccount> {
                   ),
                   SizedBox(
                     width: devWid * 0.7,
-                    height: devHei * 0.013,
+                    height: devHei * 0.015,
                   ),
                   Container(
                     width: devWid * 0.7,
@@ -139,28 +137,35 @@ class CreateAccountState extends State<CreateAccount> {
                     child: TextFormField(
                       controller: _userNameController,
                       decoration: InputDecoration(labelText: 'User name'),
-                      validator: (String value) => (value.length == 0)
-                          ? 'Please enter a valid User name'
-                          : null,
-                      onChanged: userNameChecker,
+                      validator: _userNameValidator,
+                      onChanged: _userNameChecker,
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(32),
+                        LengthLimitingTextInputFormatter(16),
                       ],
                     ),
                   ),
-                  Container(
-                    width: devWid * 0.7,
-                    height: devHei * 0.013,
-                    child: (_userNameAlert.length > 0 && _userNameAlert != null)
-                        ? Text(
-                            _userNameAlert,
-                            style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 11.0,
-                                fontWeight: FontWeight.w200,
-                                fontFamily: 'Roboto'),
-                          )
-                        : null,
+                  Wrap(
+                    children: <Widget>[
+                      Container(
+                        width: devWid * 0.7,
+                        child: (_userNameAlert.length > 0 &&
+                                _userNameAlert != null)
+                            ? Text(
+                                _userNameAlert,
+                                style: TextStyle(
+                                    color:
+                                        _alert ? Colors.red[700] : Colors.green,
+                                    fontSize: 12.0,
+                                    fontWeight: FontWeight.w200,
+                                    fontFamily: 'Roboto'),
+                              )
+                            : Container(
+                                width: devWid * 0.7,
+                                height: devHei * 0.015,
+                                child: null,
+                              ),
+                      ),
+                    ],
                   ),
                   Container(
                     width: devWid * 0.7,
@@ -168,12 +173,12 @@ class CreateAccountState extends State<CreateAccount> {
                     child: TextFormField(
                       controller: _emailController,
                       decoration: InputDecoration(labelText: 'Email address'),
-                      validator: emailValidator,
+                      validator: _emailValidator,
                     ),
                   ),
                   SizedBox(
                     width: devWid * 0.7,
-                    height: devHei * 0.013,
+                    height: devHei * 0.015,
                   ),
                   Container(
                     width: devWid * 0.7,
@@ -228,7 +233,6 @@ class CreateAccountState extends State<CreateAccount> {
 
   @override
   void dispose() {
-    // Clean up the controller when the Widget is disposed
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -236,7 +240,15 @@ class CreateAccountState extends State<CreateAccount> {
     super.dispose();
   }
 
-  String emailValidator(String value) {
+  String _userNameValidator(String value) {
+    RegExp regex = new RegExp(userNamePattern);
+    if (!regex.hasMatch(value))
+      return 'Enter Valid User name';
+    else
+      return null;
+  }
+
+  String _emailValidator(String value) {
     Pattern pattern =
         r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
     RegExp regex = new RegExp(pattern);
@@ -246,67 +258,82 @@ class CreateAccountState extends State<CreateAccount> {
       return null;
   }
 
-  Future<String> userNameChecker(String value) async {
-    bool _alreadyTaken;
-//TODO get data from database
-    Firestore.instance.document('user/userName').snapshots().listen((snapshot) {
-      if (snapshot.data.containsKey(value)) {
-        this.setState(() {
-          _alreadyTaken = true;
+  Future<Null> _userNameChecker(String value) async {
+    if (value.length != 0) {
+      RegExp regex = new RegExp(userNamePattern);
+      if (!regex.hasMatch(value)) {
+        setState(() {
+          _userNameAlert =
+              'User name must have 3 to 16 characters and contain only letters, numbers, "_" and no spaces. So, "@$value" is not allowed.';
+          _alert = true;
         });
-      } else if (!snapshot.data.containsKey(value)) {
-        this.setState(() {
-          _alreadyTaken = false;
+      } else {
+        String _userName = '@' + value;
+        await db
+            .collection('username')
+            .document('$_userName')
+            .get()
+            .then((documentSnapshot) {
+          if (documentSnapshot.exists) {
+            setState(() {
+              _alert = true;
+            });
+          } else if (!documentSnapshot.exists) {
+            setState(() {
+              _alert = false;
+            });
+          }
+        });
+
+        setState(() {
+          _userNameAlert = _alert
+              ? '$_userName has already been taken'
+              : '$_userName is available';
         });
       }
-    });
-    return _alreadyTaken
-        ? '@{$value} has already been taken'
-        : '@{$value} is available';
+    } else {
+      setState(() {
+        _userNameAlert = '';
+        _alert = false;
+      });
+    }
   }
 
   void _register() async {
     if (_formKey.currentState.validate()) {
       _formKey.currentState.save();
       try {
-        FirebaseUser user = (await _auth.createUserWithEmailAndPassword(
+        FirebaseUser _user = (await auth.createUserWithEmailAndPassword(
                 email: _emailController.text.trim(),
                 password: _passwordController.text.trim()))
             .user;
 
         //user.sendEmailVerification();
 
-        if (user != null) {
-          final QuerySnapshot result = await Firestore.instance
-              .collection('user')
-              .where('id', isEqualTo: user.uid)
+        if (_user != null) {
+          final QuerySnapshot result = await db
+              .collection('users')
+              .where('id', isEqualTo: _user.uid)
               .getDocuments();
           final List<DocumentSnapshot> documents = result.documents;
 
           if (documents.length == 0) {
             // Update data to server if new user
             String _userName;
-            _userName = _userNameController.text.trim();
-            if (_userName[0] != '@') {
-              this.setState(() {
-                _userName = '@' + _userName;
-              });
-            }
-            Firestore.instance
-                .collection('user')
-                .document('username')
-                .setData({'$_userName': user.uid});
+            _userName = '@' + _userNameController.text.trim();
 
-            Firestore.instance
-                .collection('user')
-                .document('users')
-                .collection(_userName)
+            //collection of user name
+            db
+                .collection('username')
                 .document(_userName)
-                .setData({
+                .setData({'id': _user.uid});
+
+            //collection of user's data
+            db.collection('users').document(_userName).setData({
               'name': _nameController.text.trim(),
               'userName': _userName,
-              'photoUrl': user.photoUrl,
-              'id': user.uid,
+              'photoUrl': _user.photoUrl,
+              'id': _user.uid,
               'createdAt': DateTime.now(),
               'scoreOfTrust': 0,
             });
@@ -316,7 +343,7 @@ class CreateAccountState extends State<CreateAccount> {
         Navigator.push(
           context,
           PageRouteBuilder(
-            pageBuilder: (c, a1, a2) => BaseGMap(user: user),
+            pageBuilder: (c, a1, a2) => BaseGMap(user: _user),
             transitionsBuilder: (c, anim, a2, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: Duration(milliseconds: 2000),
