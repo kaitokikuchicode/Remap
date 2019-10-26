@@ -4,8 +4,8 @@ import 'package:flutter_google_places/flutter_google_places.dart';
 import 'dart:math';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:remap/signIn_signUp/remap_starting.dart';
 import 'package:remap/main.dart';
+import 'package:remap/size_config.dart';
 
 class SearchLocation extends StatefulWidget {
   final BaseGMapState baseGMapState;
@@ -19,45 +19,28 @@ class _SearchLocationState extends State<SearchLocation> {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: devHei * 0.05,
+    return Align(
+      alignment: Alignment(0.90, -0.90),
       child: Material(
         elevation: 10.0,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(SizeConfig.blockSizeVertical * 5.0),
         child: Container(
-            height: devHei * 0.05,
-            width: devWid * 0.5,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+          height: SizeConfig.blockSizeVertical * 5.0,
+          width: SizeConfig.blockSizeVertical * 5.0,
+          decoration: BoxDecoration(
+            borderRadius:
+                BorderRadius.circular(SizeConfig.blockSizeVertical * 5.0),
+          ),
+          child: InkWell(
+            child: Icon(
+              Icons.search,
+              color: Color.fromRGBO(50, 226, 46, 1),
             ),
-            child: InkWell(
-              child: Center(
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      margin: EdgeInsets.only(left: devWid * 0.1),
-                      child: Text(
-                        'Search location',
-                        style: TextStyle(
-                            color: Colors.greenAccent[400],
-                            fontSize: devHei * 0.018,
-                            fontWeight: FontWeight.w200,
-                            fontFamily: 'Roboto'),
-                      ),
-                    ),
-                    Container(
-                        margin: EdgeInsets.only(left: 20.0),
-                        child: Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        )),
-                  ],
-                ),
-              ),
-              onTap: () {
-                _handlePressButton();
-              },
-            )),
+            onTap: () {
+              _handlePressButton();
+            },
+          ),
+        ),
       ),
     );
   }

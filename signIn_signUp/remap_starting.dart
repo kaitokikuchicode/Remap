@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:remap/main.dart';
 import 'package:remap/remap_load.dart';
+import 'package:remap/size_config.dart';
 import 'remap_createAccount.dart';
 import 'remap_logIn.dart';
 
@@ -16,6 +17,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+      ),
       home: StartingScreen(),
     );
   }
@@ -63,6 +68,7 @@ class StartingScreenState extends State<StartingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig().init(context);
     setState(() {
       devWid = MediaQuery.of(context).size.width;
       devHei = MediaQuery.of(context).size.height;
@@ -71,139 +77,106 @@ class StartingScreenState extends State<StartingScreen> {
     return _isLoding
         ? RemapLoad()
         : Scaffold(
-            backgroundColor: Colors.white,
-            body: Column(
+            body: Stack(
               children: <Widget>[
-                Stack(
-                  children: <Widget>[
-                    SizedBox(
-                      width: double.infinity,
-                      height: devHei * 0.40,
-                      child: Image.asset(
-                        'assets/images/remap_header_pic.png',
-                        fit: BoxFit.fill,
-                      ),
+                Align(
+                  alignment: Alignment(0.00, -0.65),
+                  child: Text(
+                    'Remapable',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontWeight: FontWeight.w600,
+                      fontSize: SizeConfig.blockSizeVertical * 5,
+                      color: Color.fromRGBO(31, 157, 28, 1),
                     ),
-                    SafeArea(
-                      child: Column(
-                        children: <Widget>[
-                          Center(
-                            child: Hero(
-                              tag: 'logo',
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 40,
-                                height: 35,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'Remap',
-                            style: TextStyle(
-                              color: Color.fromRGBO(31, 157, 28, 1),
-                              fontSize: devHei * 0.045,
-                              fontFamily: 'Nunito',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Container(
-                            margin: EdgeInsets.only(top: devHei * 0.02),
-                            child: Text(
-                              'Discover another small world in minutes',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: devHei * 0.02,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                Container(
-                  margin: EdgeInsets.only(top: 30),
-                  width: devWid * 0.65,
-                  height: devHei * 0.05,
-                  child: RaisedButton(
-                    elevation: 7,
-                    color: Color.fromRGBO(119, 236, 124, 1),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0)),
-                    child: Center(
+                Align(
+                  alignment: Alignment(0.00, -0.325),
+                  child: Text(
+                    'Discover another small worlds in minutes',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w200,
+                      fontSize: SizeConfig.blockSizeVertical * 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment(0.00, 0.00),
+                  child: Container(
+                    width: SizeConfig.blockSizeHorizontal * 70,
+                    height: SizeConfig.blockSizeVertical * 6.0,
+                    child: RaisedButton(
+                      color: Color.fromRGBO(50, 226, 46, 1),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(27.0)),
                       child: Text(
-                        'Create a new account',
+                        'Create account',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: devHei * 0.019,
-                          fontWeight: FontWeight.w500,
                           fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w700,
+                          fontSize: SizeConfig.blockSizeVertical * 2.2,
+                          color: Colors.white,
                         ),
                       ),
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CreateAccount()));
+                      },
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => CreateAccount()));
-                    },
                   ),
                 ),
-                Container(
-                  margin: EdgeInsets.only(top: 30),
-                  width: devWid * 0.65,
-                  height: devHei * 0.05,
-                  child: Center(
-                    child: Text(
-                      'or',
-                      style: TextStyle(
-                        color: Colors.black38,
-                        fontSize: devHei * 0.016,
-                        fontWeight: FontWeight.w200,
-                        fontFamily: 'Roboto',
+                Align(
+                  alignment: Alignment(0.00, 0.22),
+                  child: Text(
+                    'or',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w200,
+                      fontSize: SizeConfig.blockSizeVertical * 1.6,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment(0.00, 0.40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        'Already have an account?',
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w200,
+                          fontSize: SizeConfig.blockSizeVertical * 1.6,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                Container(
-                  margin: EdgeInsets.only(top: 30),
-                  width: devWid * 0.65,
-                  height: devHei * 0.05,
-                  child: Center(
-                    child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            'Already have an account ?  ',
-                            style: TextStyle(
-                              color: Colors.black38,
-                              fontSize: devHei * 0.016,
-                              fontWeight: FontWeight.w200,
-                              fontFamily: 'Roboto',
-                            ),
+                      SizedBox(
+                        width: SizeConfig.blockSizeHorizontal * 2,
+                      ),
+                      GestureDetector(
+                        child: Text(
+                          'log in',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w200,
+                            fontSize: SizeConfig.blockSizeVertical * 1.6,
+                            color: Colors.blue[300],
                           ),
-                          GestureDetector(
-                            child: Text(
-                              'log in',
-                              style: TextStyle(
-                                  fontSize: devHei * 0.016,
-                                  color: Colors.blue[300],
-                                  fontWeight: FontWeight.w200,
-                                  fontFamily: 'Roboto',
-                                  fontStyle: FontStyle.italic),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => LogIn()));
-                            },
-                          )
-                        ]),
+                        ),
+                        onTap: () {
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (context) => LogIn()));
+                        },
+                      )
+                    ],
                   ),
-                ),
+                )
               ],
             ),
           );

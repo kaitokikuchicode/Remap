@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -7,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as PackLoc;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart'; //used when _createFitPolyline called
+import 'package:remap/size_config.dart';
 
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -15,11 +17,17 @@ import 'package:remap/remap_load.dart';
 import 'package:remap/slider_panel/slider_panel.dart';
 import 'package:remap/search_location.dart';
 
-String googleAPiKey = "Your API key";
+String googleAPiKey = "AIzaSyCafbf5uCf-SSbl_bECurvACaoYbDc-3fg";
 
 FirebaseUser user;
 
-void main() => runApp(MyApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+    runApp(MyApp());
+  });
+}
 
 class BaseGMap extends StatefulWidget {
   const BaseGMap({Key key, @required this.user}) : super(key: key);
@@ -65,10 +73,10 @@ class BaseGMapState extends State<BaseGMap> {
 
   String inpAd;
 
-  final double _initButtonsPos = 90.0;
+  final double _initButtonsPos = SizeConfig.blockSizeVertical * 14.0;
   double _buttonsPos;
-  double _panelHeightO = 575.0;
-  double _panelHeightC = 110.0;
+  double _panelHeightO = SizeConfig.blockSizeVertical * 92.0;
+  double _panelHeightC = SizeConfig.blockSizeVertical * 15.0;
 
   @override
   void initState() {
@@ -118,42 +126,138 @@ class BaseGMapState extends State<BaseGMap> {
                         pos * (_panelHeightO - _panelHeightC) + _initButtonsPos;
                   }),
                 ),
-                _myLocationButton(),
-                _drawRouteButton(),
-                _drawDoneButton()
               ],
             ),
           );
   }
 
-  Widget _myLocationButton() {
-    return Positioned(
-      right: devWid * 0.10,
-      bottom: _buttonsPos,
-      child: _myLocationB(),
+  Widget _mainBody() {
+    return Stack(
+      alignment: AlignmentDirectional.center,
+      children: <Widget>[
+        _googleMap(),
+        SearchLocation(this),
+        _changeMapTypeButton(),
+        _deleteButton(),
+        _myLocationButton(),
+        _drawRouteButton(),
+        _drawDoneButton(),
+      ],
     );
   }
 
-  Widget _myLocationB() {
-    return Container(
-      width: 55.0,
-      height: 55.0,
-      margin: EdgeInsets.all(5.0),
-      child: FloatingActionButton(
-        child: Icon(
-          Icons.gps_fixed,
-          color: Colors.grey,
+  Widget _googleMap() {
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: LatLng(startPosition.latitude, startPosition.longitude),
+        zoom: 15,
+      ),
+      onMapCreated: _onMapCreated,
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      mapType: currentMapType,
+      //onCameraMove: _getCenterLocation,
+      onTap: (value) {
+        if (drawMode && !markerSelected && !polylineSelected)
+          _addMarker(value.latitude, value.longitude);
+        _onMapTapped();
+      },
+      markers: Set<Marker>.of(markers.values),
+      polylines: Set<Polyline>.of(polylines.values),
+    );
+  }
+
+  Widget _changeMapTypeButton() {
+    return Align(
+      alignment: Alignment(0.90, -0.75),
+      child: Material(
+        elevation: 10.0,
+        borderRadius: BorderRadius.circular(SizeConfig.blockSizeVertical * 5.0),
+        child: Container(
+          height: SizeConfig.blockSizeVertical * 5.0,
+          width: SizeConfig.blockSizeVertical * 5.0,
+          decoration: BoxDecoration(
+            borderRadius:
+                BorderRadius.circular(SizeConfig.blockSizeVertical * 5.0),
+          ),
+          child: InkWell(
+            child: Icon(
+              Icons.layers,
+              color: Color.fromRGBO(50, 226, 46, 1),
+            ),
+            onTap: () {
+              setState(() {
+                currentMapType = currentMapType == MapType.normal
+                    ? MapType.hybrid
+                    : MapType.normal;
+              });
+            },
+          ),
         ),
-        onPressed: _goToDeviceLocation,
-        backgroundColor: Colors.white,
       ),
     );
+  }
+
+  Widget _myLocationButton() {
+    return Positioned(
+      right: SizeConfig.blockSizeHorizontal * 5.0,
+      bottom: _buttonsPos > SizeConfig.blockSizeVertical * 50
+          ? SizeConfig.blockSizeVertical * 50
+          : _buttonsPos,
+      child: Container(
+        width: SizeConfig.blockSizeHorizontal * 15,
+        height: SizeConfig.blockSizeHorizontal * 15,
+        child: FloatingActionButton(
+          heroTag: 'gpsbtn',
+          child: Icon(
+            Icons.gps_fixed,
+            color: Color.fromRGBO(50, 226, 46, 1),
+          ),
+          onPressed: _goToDeviceLocation,
+          backgroundColor: Colors.black,
+        ),
+      ),
+    );
+  }
+
+  Widget _deleteButton() {
+    return Container(
+        //delete marker and polyline button
+        child: (markerSelected || polylineSelected) && drawMode
+            ? Align(
+                alignment: Alignment(0, -0.15),
+                child: Container(
+                  width: 90,
+                  child: RaisedButton(
+                    elevation: 10,
+                    color: Colors.white,
+                    shape: StadiumBorder(
+                      side: BorderSide(color: Colors.red),
+                    ),
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Roboto',
+                      ),
+                    ),
+                    onPressed: () {
+                      if (markerSelected) _removeMarker();
+                      if (polylineSelected) _removePolyline();
+                    },
+                  ),
+                ),
+              )
+            : null);
   }
 
   Widget _drawRouteButton() {
     return Positioned(
       left: devWid * 0.10,
-      bottom: _buttonsPos,
+      bottom: _buttonsPos > SizeConfig.blockSizeVertical * 50
+          ? SizeConfig.blockSizeVertical * 50
+          : _buttonsPos,
       child: _drawRoute(),
     );
   }
@@ -192,76 +296,12 @@ class BaseGMapState extends State<BaseGMap> {
             : null);
   }
 
-  Widget _mainBody() {
-    return Stack(
-      alignment: AlignmentDirectional.center,
-      children: <Widget>[
-        _googleMap(),
-        SearchLocation(this),
-        //_searchLoc(),
-        _deleteButton(),
-      ],
-    );
-  }
-
-  Widget _googleMap() {
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-          target: LatLng(startPosition.latitude, startPosition.longitude),
-          zoom: 15),
-      onMapCreated: _onMapCreated,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: false,
-      mapType: currentMapType,
-      //onCameraMove: _getCenterLocation,
-      onTap: (value) {
-        if (drawMode && !markerSelected && !polylineSelected)
-          _addMarker(value.latitude, value.longitude);
-        _onMapTapped();
-      },
-      markers: Set<Marker>.of(markers.values),
-      polylines: Set<Polyline>.of(polylines.values),
-    );
-  }
-
-  Widget _deleteButton() {
-    return Container(
-        //delete marker and polyline button
-        child: (markerSelected || polylineSelected) && drawMode
-            ? Align(
-                alignment: Alignment(0, -0.15),
-                child: Container(
-                  width: 90,
-                  child: RaisedButton(
-                    elevation: 10,
-                    color: Colors.white,
-                    shape: StadiumBorder(
-                      side: BorderSide(color: Colors.red),
-                    ),
-                    child: Text(
-                      'Delete',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Roboto',
-                      ),
-                    ),
-                    onPressed: () {
-                      if (markerSelected) _removeMarker();
-                      if (polylineSelected) _removePolyline();
-                    },
-                  ),
-                ),
-              )
-            : null);
-  }
-
   Widget _drawRoute() {
     return Container(
       width: 55.0,
       height: 55.0,
-      margin: EdgeInsets.all(5),
       child: FloatingActionButton(
+        heroTag: 'drawbtn',
         backgroundColor: Colors.greenAccent[400],
         child: drawMode
             ? Icon(Icons.arrow_back, color: Colors.white)
@@ -279,12 +319,21 @@ class BaseGMapState extends State<BaseGMap> {
     );
   }
 
-  //TODO Peek problem or not use geolocator then change it to something by Oct 7
-  Future<Position> _getLocation() async {
+  // Future<Position> _getLocation() async {
+  //   var currentLocation;
+  //   try {
+  //     currentLocation = await geolocator.getCurrentPosition(
+  //         desiredAccuracy: LocationAccuracy.high);
+  //   } catch (e) {
+  //     print(e);
+  //     currentLocation = null;
+  //   }
+  //   return currentLocation;
+  // }
+  Future<PackLoc.LocationData> _getLocation() async {
     var currentLocation;
     try {
-      currentLocation = await geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+      currentLocation = await location.getLocation();
     } catch (e) {
       print(e);
       currentLocation = null;

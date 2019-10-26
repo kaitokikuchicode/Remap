@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:remap/size_config.dart';
 
 import '../main.dart';
 import 'remap_starting.dart';
@@ -29,25 +30,15 @@ class LogInState extends State<LogIn> {
     //_isIos = Theme.of(context).platform == TargetPlatform.iOS;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Stack(
-              children: <Widget>[
-                Center(
-                  child: Hero(
-                    tag: 'logo',
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 40,
-                      height: 35,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 35,
-                  height: 35,
+        child: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              Align(
+                alignment: Alignment(-0.95, -0.95),
+                child: Container(
+                  width: SizeConfig.blockSizeHorizontal * 5.8,
+                  height: SizeConfig.blockSizeVertical * 3.3,
                   child: IconButton(
                     padding: EdgeInsets.all(
                         0), //IconButton has padding: EdgeInsets.all(8.0) as the default
@@ -60,107 +51,103 @@ class LogInState extends State<LogIn> {
                     },
                   ),
                 ),
-              ],
-            ),
-            SizedBox(
-              height: devHei * 0.01,
-            ),
-            Container(
-              padding: EdgeInsets.only(bottom: devHei * 0.08),
-              child: Center(
+              ),
+              Align(
+                alignment: Alignment(0.00, -0.90),
                 child: Text(
-                  "Log in to Remap",
+                  "Log in to Remapable",
                   style: TextStyle(
-                    color: Colors.black,
-                    fontSize: devHei * 0.030,
-                    fontWeight: FontWeight.w700,
                     fontFamily: 'Roboto',
+                    fontWeight: FontWeight.w700,
+                    fontSize: SizeConfig.blockSizeVertical * 3.0,
+                    color: Colors.white,
                   ),
                 ),
               ),
-            ),
-            Container(
-              width: devWid * 0.7,
-              height: devHei * 0.06,
-              margin: EdgeInsets.only(top: 10.0),
-              child: Center(
-                child: (_errorMessage.length > 0 && _errorMessage != null)
-                    ? Text(
-                        _errorMessage,
-                        style: TextStyle(
-                            color: Colors.red,
-                            fontSize: devHei * 0.015,
+              Container(
+                width: SizeConfig.blockSizeHorizontal * 70.0,
+                height: SizeConfig.blockSizeVertical * 6.0,
+                child: Center(
+                  child: (_errorMessage.length > 0 && _errorMessage != null)
+                      ? Text(
+                          _errorMessage,
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
                             fontWeight: FontWeight.w200,
-                            fontFamily: 'Roboto'),
-                      )
-                    : null,
+                            fontSize: SizeConfig.blockSizeVertical * 1.6,
+                            color: Colors.red,
+                          ),
+                          textAlign: TextAlign.center,
+                        )
+                      : null,
+                ),
               ),
-            ),
-            Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    width: devWid * 0.7,
-                    height: devHei * 0.085,
-                    child: TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(labelText: 'Email address'),
-                      validator: _emailValidator,
-                    ),
-                  ),
-                  SizedBox(
-                    width: devWid * 0.7,
-                    height: devHei * 0.015,
-                  ),
-                  Container(
-                    width: devWid * 0.7,
-                    height: devHei * 0.085,
-                    child: TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(labelText: 'Password'),
-                      validator: (String value) {
-                        return !(value.length > 6)
-                            ? 'Please enter longer password'
-                            : null;
-                      },
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(32),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    alignment: Alignment.center,
-                    margin: EdgeInsets.only(left: devWid * 0.6),
-                    child: RaisedButton(
-                      elevation: 7,
-                      color: Color.fromRGBO(119, 236, 124, 1),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30.0)),
-                      onPressed: () async {
-                        if (_formKey.currentState.validate()) {
-                          _signInWithEmailAndPassword();
-                        }
-                      },
-                      child: const Text(
-                        'Log in',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w200,
-                          fontFamily: 'Roboto',
-                        ),
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Container(
+                      width: SizeConfig.blockSizeHorizontal * 70,
+                      height: SizeConfig.blockSizeVertical * 8.5,
+                      child: TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(labelText: 'Email address'),
+                        validator: _emailValidator,
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(
+                      width: SizeConfig.blockSizeHorizontal * 70,
+                      height: SizeConfig.blockSizeVertical * 1.5,
+                    ),
+                    Container(
+                      width: SizeConfig.blockSizeHorizontal * 70,
+                      height: SizeConfig.blockSizeVertical * 8.5,
+                      child: TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(labelText: 'Password'),
+                        validator: (String value) {
+                          return !(value.length > 6)
+                              ? 'Please enter longer password'
+                              : null;
+                        },
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(32),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: SizeConfig.blockSizeHorizontal * 70,
+                      height: SizeConfig.blockSizeVertical * 1.5,
+                    ),
+                    Container(
+                      width: SizeConfig.blockSizeHorizontal * 70,
+                      alignment: Alignment.centerRight,
+                      child: RaisedButton(
+                        color: Color.fromRGBO(50, 226, 46, 1),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(27.0)),
+                        child: const Text(
+                          'Log in',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w200,
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (_formKey.currentState.validate()) {
+                            _signInWithEmailAndPassword();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

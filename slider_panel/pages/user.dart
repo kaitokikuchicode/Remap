@@ -5,13 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:remap/main.dart';
 import 'package:remap/signIn_signUp/remap_starting.dart';
 
-class User extends StatefulWidget {
-  User({Key key}) : super(key: key);
+class UserHome extends StatefulWidget {
+  UserHome({Key key}) : super(key: key);
 
-  _UserState createState() => _UserState();
+  _UserHomeState createState() => _UserHomeState();
 }
 
-class _UserState extends State<User> {
+class _UserHomeState extends State<UserHome> {
   TextEditingController _nameController;
   String _name = '';
   String currentUserPage = 'USER_HOME'; // current user page
