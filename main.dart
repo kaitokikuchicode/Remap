@@ -17,7 +17,7 @@ import 'package:remap/remap_load.dart';
 import 'package:remap/slider_panel/slider_panel.dart';
 import 'package:remap/search_location.dart';
 
-String googleAPiKey = "AIzaSyCafbf5uCf-SSbl_bECurvACaoYbDc-3fg";
+String googleAPiKey = "Your API key";
 
 FirebaseUser user;
 
